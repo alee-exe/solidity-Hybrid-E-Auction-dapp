@@ -28,4 +28,37 @@ contract AuctionListing {
         listedAuctions.push(createdAuction);
         emit AuctionCreated(msg.sender, listedAuctions.length);
     }
+
+    function getListedAuctions() public view returns (Auction[] memory) {
+        return listedAuctions;
+    }
+
+    function getOwner(uint _i) public view returns (address) {
+        return listedAuctions[_i].owner();
+    }
+
+    function getStartBlockTimeStamp(uint _i) public view returns (uint256) {
+        return listedAuctions[_i].startBlockTimeStamp();
+    }
+
+    function getEndBlockTimeStamp(uint _i) public view returns (uint256) {
+        return listedAuctions[_i].endBlockTimeStamp();
+    }
+
+    function getAuctionedItem(uint _i) public view returns (string memory, string memory, string memory, string memory) {
+        return listedAuctions[_i].auctionedItem();
+    }
+
+    function getHighestBidder(uint _i) public view returns (address) {
+        return listedAuctions[_i].highestBidder();
+    }
+
+    function getHighestBid(uint _i) public view returns (uint256) {
+        return listedAuctions[_i].highestBid();
+    }
+
+    function getAuctionStatus(uint _i) public view returns (Auction.STATUS) {
+        return listedAuctions[_i].auctionStatus();
+    }
+
 }

@@ -5,7 +5,7 @@ contract Auction {
     // State variables, uint256 = unsigned integer of 256 bits, address = Ethereum account addresses (20 bytes)
 
     // Store's the auction owner = contract owner
-    address internal owner;
+    address public owner;
     // Auction start and end times (since unix epoch in seconds)
     uint256 public startBlockTimeStamp;
     uint256 public endBlockTimeStamp;

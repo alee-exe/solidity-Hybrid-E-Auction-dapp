@@ -1,6 +1,7 @@
 import '../styles/globals.css';
 import Head from 'next/head';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer'
 import Alert from '../components/Alert';
 
 function MyApp({ Component, pageProps }) {
@@ -16,13 +17,10 @@ function MyApp({ Component, pageProps }) {
       <Alert type="any">This is an any message</Alert> */}
       <Navbar />
       <Component {...pageProps} />
+      <Footer />
     </div>
   </>)
 }
-
-// function MyApp( {Component, pageProps }) {
-//   return (<Component {...pageProps} />)
-// }
 
 export default MyApp;
 

@@ -1,6 +1,5 @@
-import { useState, Component } from 'react';
+import { useState } from 'react';
 import { create as ipfsHttpClient } from 'ipfs-http-client';
-import Head from 'next/head';
 import Alert from '../components/Alert';
 import getWeb3 from '../components/getWeb3';
 
@@ -10,7 +9,7 @@ import AuctionListing from '../build/contracts/AuctionListing.json';
 
 export default function CreateAuctionPage() {
 
-    const [formField, updateFormField] = useState({ itemName: null, itemDescription: null, itemCondition: null, auctionDuration: null });
+    const [formField, updateFormField] = useState( {itemName: null, itemDescription: null, itemCondition: null, auctionDuration: null} );
     const [ipfsImageHash, setIpfsImageHash] = useState(null);
     const [submitAlert, setSubmitAlert] = useState(null);
 
@@ -34,13 +33,10 @@ export default function CreateAuctionPage() {
         });
     }
 
-
     async function handleImageFile(event) {
         const imageFile = event.target.files[0];
         try {
             const bind = await client.add(imageFile, { progress: (update) => console.log(`Successfully received uploaded file (bytes): ${update}`) });
-            // const hostedFileImageUrl = `https://ipfs.infura.io/ipfs/${bind.path}`;
-            console.log(bind.path);
             setIpfsImageHash(bind.path);
         } catch (error) {
             console.log("Error: could not handle selected file: ", error);
@@ -67,7 +63,7 @@ export default function CreateAuctionPage() {
 
                     <h1 className="pb-3 font-bold">Auction Properties</h1>
                     <p>Auction Duration (in Hours):</p>
-                    <input placeholder="Insert Duration" className="pt-2 mt-1 border rounded p-2 mb-8" onChange={event => updateFormField({ ...formField, auctionDuration: event.target.value })} required />
+                    <input type="number" min="0" placeholder="Insert Duration" className="pt-2 mt-1 border rounded p-2 mb-8" onChange={event => updateFormField({ ...formField, auctionDuration: event.target.value })} required />
 
                     <button type="submit" className="font-bold mt-4 bg-blue-500 text-white rounded p-4 shadow-lg">
                         Create Auction
@@ -76,7 +72,6 @@ export default function CreateAuctionPage() {
             </form>
         </div>
     )
-
 }
 
 

@@ -3,11 +3,10 @@ import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import Auction from '../components/Auction.js';
+import AuctionListingComponent from '../components/AuctionListing.js';
 // import styles from '../styles/Home.module.css';
 // import dynamic from 'next/dynamic';
 // const AuctionComponent = dynamic(() => import('../components/Auction.js'));
-
 
 export default function Home() {
   return (
@@ -17,6 +16,8 @@ export default function Home() {
         <meta name="description" content="Decentralized E-Auction Dapp" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
+
+      <AuctionListingComponent />
     </div>
   )
 }
