@@ -13,17 +13,19 @@ contract AuctionListing {
         uint256 _biddingTime,
         string memory _name,
         string memory _condition,
-        string memory _description
+        string memory _description,
+        string memory _ipfsImageHash
     ) public {
-        Auction newAuction = new Auction(
-            _biddingTime,
+        Auction createdAuction = new Auction(
             msg.sender,
+            _biddingTime,
             _name,
             _condition,
-            _description
+            _description,
+            _ipfsImageHash    
         );
 
-        listedAuctions.push(newAuction);
+        listedAuctions.push(createdAuction);
         emit AuctionCreated(msg.sender, listedAuctions.length);
     }
 }

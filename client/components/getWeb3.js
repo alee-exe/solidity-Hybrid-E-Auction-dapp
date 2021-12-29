@@ -1,6 +1,6 @@
 import Web3 from "web3";
 
-function getWeb3 () {
+export default async function getWeb3 () {
     let web3 = null;
 
     // Modern dapp browsers...
@@ -28,8 +28,6 @@ function getWeb3 () {
         web3 = new Web3(provider);
         console.log("Using local blockchain provider.")
     }
-
+    
     return web3;
 }
-
-export default getWeb3;

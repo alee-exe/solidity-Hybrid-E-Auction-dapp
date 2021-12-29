@@ -1,13 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
-const Auction = function(props) {
-    
+// Template for each auction in the auction listing
 
-    return (
-        <div>
-            <h1>Item placeholder</h1>
-        </div>
-    )
+export default function Auction (props) {
+
 }
-
-export default Auction;

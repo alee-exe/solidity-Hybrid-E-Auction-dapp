@@ -7,8 +7,8 @@ contract Auction {
     // Store's the auction owner = contract owner
     address internal owner;
     // Auction start and end times (since unix epoch in seconds)
-    uint256 public startBlockTime;
-    uint256 public endBlockTime;
+    uint256 public startBlockTimeStamp;
+    uint256 public endBlockTimeStamp;
     // Highest bid in Ether
     uint256 public highestBid;
     // Address of current highest bidder
@@ -40,12 +40,11 @@ contract Auction {
         string memory _condition,
         string memory _description,
         string memory _ipfsImageHash
-         
     ) {
         owner = _owner;
-        startBlockTime = block.timestamp;
+        startBlockTimeStamp = block.timestamp;
         // time is in hours
-        endBlockTime = startBlockTime + _biddingTime * 1 hours;
+        endBlockTimeStamp = startBlockTimeStamp + _biddingTime * 1 hours;
         auctionStatus = STATUS.ONGOING;
         auctionedItem.name = _name;
         auctionedItem.condition = _condition;
@@ -72,7 +71,7 @@ contract Auction {
     }
 
     modifier not_ended() {
-        require(block.timestamp <= endBlockTime);
+        require(block.timestamp <= endBlockTimeStamp);
         _;
     }
 
@@ -99,7 +98,7 @@ contract Auction {
 
     function withdraw() public returns (bool) {
         require(
-            block.timestamp > endBlockTime || auctionStatus != STATUS.ONGOING,
+            block.timestamp > endBlockTimeStamp || auctionStatus != STATUS.ONGOING,
             "You can only withdraw at the end of the auction."
         );
 
