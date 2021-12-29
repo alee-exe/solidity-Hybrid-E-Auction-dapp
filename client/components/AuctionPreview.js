@@ -22,6 +22,8 @@ export default function Auction(props) {
 
     // renders on every frame to update real-time components
     // renders once using []
+
+    // TO-DO: convert this page to component class
     useEffect(() => {
         const getMethods = async () => {
             const owner = await contract.methods.getOwner(id).call();
@@ -55,7 +57,7 @@ export default function Auction(props) {
     function convertTimestampToDate(timestamp) {
         // convert to JS timestamp in miliseconds from Unix timestamp in seconds since Unix epoch
         const date = new Date(timestamp * 1000);
-        const conversion = date.getDate() + '/' + (date.getMonth()+1) + '/' + date.getFullYear() + " " + date.getHours() + ":" + (date.getMinutes()<10?'0':'') + date.getMinutes();
+        const conversion = date.getDate() + '/' + (date.getMonth()+1) + '/' + date.getFullYear() + " at " + date.getHours() + ":" + (date.getMinutes()<10?'0':'') + date.getMinutes();
 
         return conversion;
     }
@@ -68,20 +70,20 @@ export default function Auction(props) {
     return (
         <div className="grid grid-rows-2 grid-flow-col gap-4 pb-4 border mb-4">
             <div className="row-span-3 pl-5 pt-5">
-                {ipfsImageHash === null ? (<p>Could not find image.</p>) : (<Image src={`https://ipfs.infura.io/ipfs/${ipfsImageHash}`} width={370} height={250}></Image>)}
+                {ipfsImageHash === null ? (<p>Loading image...</p>) : (<Image src={`https://ipfs.infura.io/ipfs/${ipfsImageHash}`} width={390} height={250}></Image>)}
             </div>
 
-            <div className="row-span-2 col-span-2">
-                <p>Auction Owner (Address): {owner}</p>
-                <p>Start Date: {convertTimestampToDate(startBlockTimeStamp)}</p>
-                <p>End Date: {convertTimestampToDate(endBlockTimeStamp)}</p>
-                <p>Current Highest Bidder (Address): {highestBidder}</p>
-                <p>Current Highest Bid: {highestBid}</p>
-                <p>Auction Status: {enumStatus(auctionStatus)}</p>
+            <div className="row-span-2 col-span-2 pt-5 pr-2">
+                <p><span className="font-bold">Auction Owner (Address): </span>{owner}</p>
+                <p><span className="font-bold">Start Date: </span>{convertTimestampToDate(startBlockTimeStamp)}</p>
+                <p><span className="font-bold">End Date: </span>{convertTimestampToDate(endBlockTimeStamp)}</p>
+                <p><span className="font-bold">Current Highest Bidder (Address): </span>{highestBidder}</p>
+                <p><span className="font-bold">Current Highest Bid: </span>{highestBid} ETH</p>
+                <p><span className="font-bold">Auction Status: </span>{enumStatus(auctionStatus)}</p>
 
-                <p>Item Name: {itemName}</p>
-                <p>Item Description: {itemDescription}</p>
-                <p>Item Condition: {itemCondition}</p>
+                <p><span className="font-bold">Item Name: </span>{itemName}</p>
+                <p><span className="font-bold">Item Description: </span>{itemDescription}</p>
+                <p><span className="font-bold">Item Condition: </span>{itemCondition}</p>
             </div>
         </div>
     )

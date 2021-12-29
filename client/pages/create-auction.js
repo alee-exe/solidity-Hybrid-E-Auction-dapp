@@ -48,7 +48,7 @@ export default function CreateAuctionPage() {
             {submitAlert}
             <form onSubmit={createAuction} className="flex justify-center pt-10 border">
                 <div className="w-1/2 flex flex-col pb-12">
-                    <h1 className="pb-3 font-bold">Create an Auction</h1>
+                    <h1 className="pb-3 text-2xl font-bold">Create an Auction</h1>
                     <hr className="border-slate-400 pb-4" />
 
                     <h1 className="pb-3 font-bold">Auctioned Item Properties</h1>
