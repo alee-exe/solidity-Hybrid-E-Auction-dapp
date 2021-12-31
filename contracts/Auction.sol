@@ -17,7 +17,8 @@ contract Auction {
     // Auction state
     enum STATUS {
         CANCELLED,
-        ONGOING
+        ONGOING,
+        ENDED
     }
 
     STATUS public auctionStatus;
@@ -75,10 +76,6 @@ contract Auction {
         _;
     }
 
-    function getOwner() public view returns (address) {
-        return owner;
-    }
-
     function placeBid() public payable only_ongoing not_ended returns (bool) {
         require(
             msg.value > highestBid,
@@ -117,18 +114,14 @@ contract Auction {
         return true;
     }
 
-    function setAuctionStatus(uint _status) public {
-        auctionStatus = STATUS(_status);
-    }
-
     function cancelAuction() public only_owner only_ongoing returns (STATUS) {
-        setAuctionStatus(0);
-        emit enumEvent("Auction state has changed.", block.timestamp);
+        auctionStatus = STATUS.CANCELLED;
+        emit statusEvent("Auction state has changed.", block.timestamp);
 
         return auctionStatus;
     }
 
     event bidEvent(address indexed highestBidder, uint256 highestBid);
     event withdrawalEvent(address withdrawer, uint256 amount);
-    event enumEvent(string message, uint256 time);
+    event statusEvent(string message, uint256 time);
 }

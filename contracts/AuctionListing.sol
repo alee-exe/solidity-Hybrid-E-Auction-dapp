@@ -61,4 +61,8 @@ contract AuctionListing {
         return listedAuctions[_i].auctionStatus();
     }
 
+    function placeBid(uint _i) public payable returns (bool) {
+        return listedAuctions[_i].placeBid{value:msg.value}();
+    }
+
 }
