@@ -1,15 +1,18 @@
-import { Component, useEffect } from 'react';
+import { Component } from 'react';
 import { withRouter, NextRouter } from 'next/router';
 import Image from 'next/image';
 import getWeb3 from '@/components/getWeb3.js';
 import AuctionListing from '@/build/contracts/AuctionListing.json';
-import Alert from '@/components/Alert.js'
+import Alert from '@/components/Alert.js';
+import { convertTimestampToDate, enumStatus } from '@/components/AuctionUtils.js';
 
 
 export default withRouter(class Home extends Component {
+
     state = {
         web3Provider: null,
         userAccount: null,
+        userTotalBids: null,
         contract: null,
         owner: null,
         itemName: null,
@@ -21,7 +24,7 @@ export default withRouter(class Home extends Component {
         highestBidder: null,
         highestBid: null,
         auctionStatus: null,
-        auctionTimeLeft: null,
+        auctionTimer: null,
         auctionId: null,
         bidAlert: null,
         bidValue: null
@@ -34,76 +37,57 @@ export default withRouter(class Home extends Component {
             const contractAddress = await AuctionListing.networks[blockchainNetworkId].address;
             const contract = new web3.eth.Contract(AuctionListing['abi'], contractAddress);
             const userAddresses = await web3.eth.getAccounts();
+            const userAccount = userAddresses[0];
 
             const id = this.props.router.query.id - 1;
+
+            const userTotalBids = await contract.methods.getUserTotalBids(id, userAccount).call();
+            const userTotalBidsConvert = web3.utils.fromWei(userTotalBids, 'ether');
+            console.log(userTotalBidsConvert);
 
             const owner = await contract.methods.getOwner(id).call();
             const startBlockTimeStamp = await contract.methods.getStartBlockTimeStamp(id).call();
             const endBlockTimeStamp = await contract.methods.getEndBlockTimeStamp(id).call();
             const highestBid = await contract.methods.getHighestBid(id).call();
+            const highestBidConvert = web3.utils.fromWei(highestBid, 'ether');
             const highestBidder = await contract.methods.getHighestBidder(id).call();
 
             const auctionStatus = await contract.methods.getAuctionStatus(id).call();
             const auctionedItem = await contract.methods.getAuctionedItem(id).call();
-            const auctionTimeLeft = endBlockTimeStamp - Math.floor(Date.now() / 1000);
+            const auctionTimer = (endBlockTimeStamp - Math.floor(Date.now() / 1000));
 
             const itemName = auctionedItem[0];
             const itemDescription = auctionedItem[1];
             const itemCondition = auctionedItem[2];
             const ipfsImageHash = auctionedItem[3];
 
-            this.setState({ web3Provider: web3, userAccount: userAddresses[0], contract, owner, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid, auctionStatus, auctionTimeLeft, auctionId: id })
+            this.setState({ web3Provider: web3, contract, userAccount, userTotalBids: userTotalBidsConvert, owner, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid: highestBidConvert, auctionStatus, auctionTimer, auctionId: id });
 
+            this.intervalAuctionTimer = setInterval(() => this.setState({ auctionTimer: endBlockTimeStamp - Math.floor(Date.now() / 1000) }), 1000);
+
+            this.intervalAuctionStatus = setInterval(() => {
+                if (this.state.auctionTimer <= 0) {
+                    this.updateAuctionStatus();
+                }
+            }, 300000);
+
+            this.updateAuctionStatus();
         } catch (error) {
             console.log(error);
         }
     };
 
-    componentDidUpdate = async (prevState) => {
-        if (prevState.data !== this.state.data) {
-            this.updateAuctionTimeLeft();
-            this.updateAuctionStatus();
-        }
+    // Clear auction timer and status check to prevent memory leaks
+    componentWillUnmount() {
+        clearInterval(this.intervalAuctionTimer);
+        clearInterval(this.intervalAuctionStatus);
     };
-
-    // useEffect = () => {
-    //     this.updateAuctionTimeLeft();
-    //     this.updateAuctionStatus();
-    // };
-
-
-    convertTimestampToDate(timestamp, mode) {
-        if (timestamp <= 0) {
-            return 0;
-        }
-
-        // convert to JS timestamp in miliseconds from Unix timestamp in seconds since Unix epoch
-        const date = new Date(timestamp * 1000);
-        var conversion = null;
-
-        if (mode !== "time") {
-            conversion = date.getDate() + '/' + (date.getMonth() + 1) + '/' + date.getFullYear() + " at " + date.getHours() + ":" + (date.getMinutes() < 10 ? '0' : '') + date.getMinutes();
-        } else {
-            conversion = date.getHours() + ":" + (date.getMinutes() < 10 ? '0' : '') + date.getMinutes() + ":" + (date.getSeconds() < 10 ? '0' : '') + date.getSeconds();
-        }
-        return conversion;
-    };
-
-    enumStatus(enum_index) {
-        const status = ["CANCELLED", "ONGOING", "ENDED"];
-        return (status[enum_index]);
-    };
-
-    updateAuctionTimeLeft() {
-        const timeRemaining = this.state.endBlockTimeStamp - Math.floor(Date.now() / 1000);
-        this.setState({ auctionTimeLeft: timeRemaining});
-    }
 
     updateAuctionStatus() {
-        if (this.state.endBlockTimeStamp - Math.floor(Date.now() / 1000) <= 0) {
+        if ((this.state.endBlockTimeStamp - Math.floor(Date.now() / 1000)) <= 0) {
             this.setState({ auctionStatus: 2 });
         }
-    }
+    };
 
     onClickPlaceBid = async (event) => {
         event.preventDefault();
@@ -120,13 +104,28 @@ export default withRouter(class Home extends Component {
                 this.setState({ bidAlert });
             }
         });
-
     };
 
     handleBidValue = (event) => {
         this.setState({ bidValue: event.target.value });
     };
 
+    onClickWithdraw = async (event) => {
+        event.preventDefault();
+        const { contract, web3Provider, userAccount, auctionId } = this.state;
+
+        await contract.methods.withdraw(auctionId).send( {from: userAccount} ).then (async (response) => {
+            if (response) {
+                const bidAlert = <Alert type="success">Successfully withdrawn!</Alert>;
+                this.setState({ bidAlert });
+            }
+        }).catch((error) => {
+            if (error) {
+                const bidAlert = <Alert type="danger">Error: Could not withdraw. See console for more details.</Alert>;
+                this.setState({ bidAlert });
+            }
+        });
+    };
 
     render() {
         return (
@@ -145,29 +144,46 @@ export default withRouter(class Home extends Component {
                         <p className="font-bold italic text-lg">The item's condition is as follows:</p>
                         <p className="text-lg pb-3">"{this.state.itemCondition}"</p>
 
+                        <p className="pb-3"><span className="font-bold"> Auction Owner (Address): </span>{this.state.owner}</p>
+                        <p className="pb-3"><span className="font-bold">Auction End Date: </span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {convertTimestampToDate(this.state.auctionTimer, "time")})</p>
 
-
-                        <p className="pb-3"><span className="font-bold">Created By Auction Owner (Address): </span>{this.state.owner}, on the <span className="font-bold">{this.convertTimestampToDate(this.state.startBlockTimeStamp)}.</span></p>
-                        <p className="pb-3"><span className="font-bold">Auction End Date: </span>{this.convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {this.convertTimestampToDate(this.state.auctionTimeLeft, "time")})</p>
-                        {/* <p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p>
-                    <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid}</p> */}
-
-                        <p className="pb-3"><span className="font-bold">Auction Status: </span>{this.enumStatus(this.state.auctionStatus)}</p>
-
-                        <p className="pb-3"><span className="font-bold">Item Name: </span>{this.state.itemName}</p>
-                        <p className="pb-3"><span className="font-bold">Item Description: </span>{this.state.itemDescription}</p>
-                        <p className="pb-3"><span className="font-bold">Item Condition: </span>{this.state.itemCondition}</p>
+                        <p className="pb-3"><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>
+                        <p className="pb-3"><span className="font-bold">Created on: </span>{convertTimestampToDate(this.state.startBlockTimeStamp)}.</p>
                     </div>
 
                 </div>
 
-                <div className="flex mt-4 card border">
-                    <form onSubmit={this.onClickPlaceBid} className="flex justify-center border">
-                        <input type="number" min="0" step="any" placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />
-                        <button type="submit" className="font-bold bg-blue-500 text-white rounded p-4 shadow-lg">
-                            Place Bid
-                        </button>
-                    </form>
+                <div className="flex">
+                    <div className="mt-4 card border w-1/2 mr-4">
+                        <p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p>
+                        <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid} ETH</p>
+                        <p><span className="font-bold">Your Total Bids: </span>{this.state.userTotalBids} ETH</p>
+                    </div>
+
+                    <div className="mt-4 flex card border w-1/2">
+                        <div className="w-1/2 mr-5">
+                            <p className="mb-4">Enter your Bid Value (Converts from Wei to ETH): </p>
+                            <form onSubmit={this.onClickPlaceBid} className="flex">
+                                <input type="number" min="0" step="any" placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />
+                                <button type="submit" className="font-bold bg-blue-500 text-white rounded p-4 shadow-lg">
+                                    Place Bid
+                                </button>
+                            </form>
+                        </div>
+
+                        <div className="w-1/2 pl-10">
+                            <p className="mb-4">Early Withdraw from Auction: </p>
+                            <button className="font-bold bg-slate-500 text-white rounded p-4 shadow-lg w-4/5" id="withdraw" onClick={this.onClickWithdraw} type="button">Withdraw
+                                bids</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex">
+                    <div className="mt-4 card border w-1/2 mr-4">
+                        <p className="mb-2 text-lg">Auction Event Logs</p>
+                        <hr className="pb-4 border-slate-400" />
+                    </div>
                 </div>
             </div>
         )

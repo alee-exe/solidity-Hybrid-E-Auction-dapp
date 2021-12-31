@@ -57,7 +57,7 @@ contract Auction {
     address[] bidders;
     // bids - maps all bidders with their total bids, hash map (KeyType => ValueType)
     // variables with the public modifier have automatic getters
-    mapping(address => uint256) public bids;
+    mapping(address => uint256) public trackAllBids;
 
     // require will refund the remaining gas to the caller
     modifier only_ongoing() {
@@ -86,7 +86,7 @@ contract Auction {
         highestBid = msg.value;
         bidders.push(msg.sender);
 
-        bids[msg.sender] = bids[msg.sender] + msg.value;
+        trackAllBids[msg.sender] = trackAllBids[msg.sender] + msg.value;
 
         emit bidEvent(highestBidder, highestBid);
 
@@ -96,16 +96,16 @@ contract Auction {
     function withdraw() public returns (bool) {
         require(
             block.timestamp > endBlockTimeStamp || auctionStatus != STATUS.ONGOING,
-            "You can only withdraw at the end of the auction."
+            "You can only withdraw at the end of the auction or when it is cancelled."
         );
 
-        require(bids[msg.sender] > 0, "You've already withdrawn from this auction.");
+        require(trackAllBids[msg.sender] > 0, "You've already withdrawn from this auction.");
         uint256 amount;
 
         // Find bid placed by address of bidder (hash map)
-        amount = bids[msg.sender];
+        amount = trackAllBids[msg.sender];
         // Set current bid by withdrawer to 0 (update hash map)
-        bids[msg.sender] = 0;
+        trackAllBids[msg.sender] = 0;
         // Transfer back funds
         payable(msg.sender).transfer(amount);
         // Trigger event

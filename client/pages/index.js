@@ -1,6 +1,5 @@
 import React from 'react';
 import Head from 'next/head';
-
 import AuctionListingComponent from '../components/AuctionListing.js';
 
 export default function Home() {

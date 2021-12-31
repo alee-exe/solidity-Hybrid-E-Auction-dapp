@@ -18,6 +18,7 @@ export default function Alert(props) {
     } else {
         style = ["flex p-4 mb-4 bg-blue-100 rounded-lg dark:bg-blue-200", "flex-shrink-0 w-5 h-5 text-blue-700 dark:text-blue-800", "ml-3 text-sm font-medium text-blue-700 dark:text-blue-800", "ml-auto -mx-1.5 -my-1.5 bg-blue-100 text-blue-500 rounded-lg focus:ring-2 focus:ring-blue-400 p-1.5 hover:bg-blue-200 inline-flex h-8 w-8 dark:bg-blue-200 dark:text-blue-600 dark:hover:bg-blue-300"];
     }
+    
     return (
         <div className="pb-4" id={props.type}>
             <div className={style[0]} role="alert">

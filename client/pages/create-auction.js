@@ -31,7 +31,7 @@ export default function CreateAuctionPage() {
                 setSubmitAlert(<Alert type="danger">Error: Could not create Auction.</Alert>);
             }
         });
-    }
+    };
 
     async function handleImageFile(event) {
         const imageFile = event.target.files[0];
@@ -41,7 +41,7 @@ export default function CreateAuctionPage() {
         } catch (error) {
             console.log("Error: could not handle selected file: ", error);
         }
-    }
+    };
 
     return (
         <div>
@@ -55,7 +55,7 @@ export default function CreateAuctionPage() {
                     <p>Item Name: </p>
                     <input placeholder="Insert Item Name" className="mt-1 border rounded p-2 mb-3" onChange={event => updateFormField({ ...formField, itemName: event.target.value })} required />
                     <p>Item Description: </p>
-                    <textarea placeholder="Insert Item Description" className="mt-1 border rounded p-2 mb-3" onChange={event => updateFormField({ ...formField, itemDescription: event.target.value })} required />
+                    <textarea placeholder="Insert Item Description" maxLength="500" className="mt-1 border rounded p-2 mb-3" onChange={event => updateFormField({ ...formField, itemDescription: event.target.value })} required />
                     <p>Item Condition: </p>
                     <input placeholder="Insert Item Condition" className="mt-1 border rounded p-2 mb-3" onChange={event => updateFormField({ ...formField, itemCondition: event.target.value })} required />
                     <p>Item Image File: </p>

@@ -7,6 +7,7 @@ import Link from 'next/link';
 
 
 export default class AuctionListingComponent extends Component {
+    
     state = {
         auctionListing: null,
         web3Provider: null,
@@ -46,10 +47,10 @@ export default class AuctionListingComponent extends Component {
 
                             <div>
                                 {this.state.auctionListing.map((auction, idx) => (
-                                    <div key={idx}>
+                                    <div key = {idx}>
                                         <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: idx + 1 } }}>
                                             <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction Contract: {auction}</span>
-                                                <AuctionPreview id={idx} contract={this.state.contract}></AuctionPreview></a></Link>
+                                                <AuctionPreview web3={this.state.web3Provider} id={idx} contract={this.state.contract}></AuctionPreview></a></Link>
                                     </div>
                                 ))}
                             </div>
