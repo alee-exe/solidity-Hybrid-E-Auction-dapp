@@ -38,12 +38,9 @@ export default withRouter(class Home extends Component {
             const contract = new web3.eth.Contract(AuctionListing['abi'], contractAddress);
             const userAddresses = await web3.eth.getAccounts();
             const userAccount = userAddresses[0];
+            // web3.eth.defaultAccount = userAccount;
 
             const id = this.props.router.query.id - 1;
-
-            const userTotalBids = await contract.methods.getUserTotalBids(id, userAccount).call();
-            const userTotalBidsConvert = web3.utils.fromWei(userTotalBids, 'ether');
-            console.log(userTotalBidsConvert);
 
             const owner = await contract.methods.getOwner(id).call();
             const startBlockTimeStamp = await contract.methods.getStartBlockTimeStamp(id).call();
@@ -60,6 +57,9 @@ export default withRouter(class Home extends Component {
             const itemDescription = auctionedItem[1];
             const itemCondition = auctionedItem[2];
             const ipfsImageHash = auctionedItem[3];
+
+            const userTotalBids = await contract.methods.getUserTotalBids(id, userAccount).call();
+            const userTotalBidsConvert = web3.utils.fromWei(userTotalBids, 'ether');
 
             this.setState({ web3Provider: web3, contract, userAccount, userTotalBids: userTotalBidsConvert, owner, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid: highestBidConvert, auctionStatus, auctionTimer, auctionId: id });
 

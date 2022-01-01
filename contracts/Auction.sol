@@ -66,8 +66,8 @@ contract Auction {
     }
 
     // makes the contract ownable - giving contract owner specific priviledges
-    modifier only_owner() {
-        require(msg.sender == owner, "Must be the contract owner.");
+    modifier only_owner(address _user) {
+        require(_user == owner, "Must be the contract owner.");
         _;
     }
 
@@ -76,45 +76,45 @@ contract Auction {
         _;
     }
 
-    function placeBid() public payable only_ongoing not_ended returns (bool) {
+    function placeBid(address _bidder) public payable only_ongoing not_ended returns (bool) {
         require(
             msg.value > highestBid,
             "Placed bid must be greater than highest bid."
         );
 
-        highestBidder = msg.sender;
+        highestBidder = _bidder;
         highestBid = msg.value;
-        bidders.push(msg.sender);
+        bidders.push(highestBidder);
 
-        trackAllBids[msg.sender] = trackAllBids[msg.sender] + msg.value;
+        trackAllBids[highestBidder] = trackAllBids[highestBidder] + msg.value;
 
         emit bidEvent(highestBidder, highestBid);
 
         return true;
     }
 
-    function withdraw() public returns (bool) {
+    function withdraw(address _bidder) public returns (bool) {
         require(
             block.timestamp > endBlockTimeStamp || auctionStatus != STATUS.ONGOING,
             "You can only withdraw at the end of the auction or when it is cancelled."
         );
 
-        require(trackAllBids[msg.sender] > 0, "You've already withdrawn from this auction.");
+        require(trackAllBids[_bidder] > 0, "You've already withdrawn from this auction.");
         uint256 amount;
 
         // Find bid placed by address of bidder (hash map)
-        amount = trackAllBids[msg.sender];
+        amount = trackAllBids[_bidder];
         // Set current bid by withdrawer to 0 (update hash map)
-        trackAllBids[msg.sender] = 0;
+        trackAllBids[_bidder] = 0;
         // Transfer back funds
-        payable(msg.sender).transfer(amount);
+        payable(_bidder).transfer(amount);
         // Trigger event
-        emit withdrawalEvent(msg.sender, amount);
+        emit withdrawalEvent(_bidder, amount);
 
         return true;
     }
 
-    function cancelAuction() public only_owner only_ongoing returns (STATUS) {
+    function cancelAuction(address _owner) public only_owner(_owner) only_ongoing returns (STATUS) {
         auctionStatus = STATUS.CANCELLED;
         emit statusEvent("Auction state has changed.", block.timestamp);
 

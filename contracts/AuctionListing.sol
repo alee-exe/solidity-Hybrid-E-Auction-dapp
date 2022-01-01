@@ -62,11 +62,11 @@ contract AuctionListing {
     }
 
     function placeBid(uint _i) public payable returns (bool) {
-        return listedAuctions[_i].placeBid{value:msg.value}();
+        return listedAuctions[_i].placeBid{value:msg.value}(msg.sender);
     }
 
      function withdraw(uint _i) public payable returns (bool) {
-        return listedAuctions[_i].withdraw();
+        return listedAuctions[_i].withdraw(msg.sender);
     }
 
     function getUserTotalBids(uint _i, address _bidder) public view returns (uint256) {
