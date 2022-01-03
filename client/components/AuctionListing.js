@@ -29,8 +29,8 @@ export default class AuctionListingComponent extends Component {
             this.setState({ auctionListing, web3Provider: web3, userAccount: userAddresses[0], contract });
         } catch (error) {
             console.log(error);
-        }
-    };
+        };
+    }
 
     render() {
         return (

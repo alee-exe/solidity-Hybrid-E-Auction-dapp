@@ -1,8 +1,9 @@
-import { Component } from 'react';
+import { Component, useState } from 'react';
 import { withRouter, NextRouter } from 'next/router';
 import Image from 'next/image';
 import getWeb3 from '@/components/getWeb3.js';
 import AuctionListing from '@/build/contracts/AuctionListing.json';
+import Auction from '@/build/contracts/Auction.json';
 import Alert from '@/components/Alert.js';
 import { convertTimestampToDate, enumStatus } from '@/components/AuctionUtils.js';
 
@@ -14,6 +15,7 @@ export default withRouter(class Home extends Component {
         userAccount: null,
         userTotalBids: null,
         contract: null,
+        auctionContract: null,
         owner: null,
         itemName: null,
         itemCondition: null,
@@ -27,10 +29,12 @@ export default withRouter(class Home extends Component {
         auctionTimer: null,
         auctionId: null,
         bidAlert: null,
-        bidValue: null
+        bidValue: null,
+        bidEventLog: null
     };
 
     componentDidMount = async () => {
+
         try {
             const web3 = await getWeb3();
             const blockchainNetworkId = await web3.eth.net.getId();
@@ -41,6 +45,9 @@ export default withRouter(class Home extends Component {
             // web3.eth.defaultAccount = userAccount;
 
             const id = this.props.router.query.id - 1;
+
+            const listedAuctions = await contract.methods.getListedAuctions().call();
+            const auctionContract = new web3.eth.Contract(Auction['abi'], listedAuctions[id]);
 
             const owner = await contract.methods.getOwner(id).call();
             const startBlockTimeStamp = await contract.methods.getStartBlockTimeStamp(id).call();
@@ -61,33 +68,74 @@ export default withRouter(class Home extends Component {
             const userTotalBids = await contract.methods.getUserTotalBids(id, userAccount).call();
             const userTotalBidsConvert = web3.utils.fromWei(userTotalBids, 'ether');
 
-            this.setState({ web3Provider: web3, contract, userAccount, userTotalBids: userTotalBidsConvert, owner, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid: highestBidConvert, auctionStatus, auctionTimer, auctionId: id });
+            this.setState({ web3Provider: web3, contract, auctionContract, userAccount, userTotalBids: userTotalBidsConvert, owner, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid: highestBidConvert, auctionStatus, auctionTimer, auctionId: id });
 
             this.intervalAuctionTimer = setInterval(() => this.setState({ auctionTimer: endBlockTimeStamp - Math.floor(Date.now() / 1000) }), 1000);
 
             this.intervalAuctionStatus = setInterval(() => {
                 if (this.state.auctionTimer <= 0) {
                     this.updateAuctionStatus();
-                }
+                };
             }, 300000);
+
+            this.intervalHighestBidder = setInterval(() => {
+                this.updateHighestBidder();
+                this.updateHighestBid();
+            }, 3000);
+
+            this.intervalUserTotalBids = setInterval(() => {
+                this.updateUserTotalBids();
+            }, 1000);
 
             this.updateAuctionStatus();
         } catch (error) {
             console.log(error);
-        }
-    };
+        };
+    }
 
-    // Clear auction timer and status check to prevent memory leaks
+    // Clear auction timer, status, highest bid, and bidder check to prevent memory leaks
     componentWillUnmount() {
         clearInterval(this.intervalAuctionTimer);
         clearInterval(this.intervalAuctionStatus);
-    };
+        clearInterval(this.intervalHighestBidder);
+        clearInterval(this.intervalUserTotalBids);
+    }
 
     updateAuctionStatus() {
         if ((this.state.endBlockTimeStamp - Math.floor(Date.now() / 1000)) <= 0) {
             this.setState({ auctionStatus: 2 });
-        }
-    };
+        };
+    }
+
+    updateHighestBidder = async () => {
+        const { contract, auctionId } = this.state;
+        const newHighestBidder = await contract.methods.getHighestBidder(auctionId).call();
+
+        if ((newHighestBidder !== this.state.highestBidder)) {
+            this.setState({ highestBidder: newHighestBidder });
+        };
+    }
+
+    updateHighestBid = async () => {
+        const { contract, auctionId, web3Provider } = this.state;
+        const highestBid = await contract.methods.getHighestBid(auctionId).call();
+        const newHighestBidConvert = web3Provider.utils.fromWei(highestBid, 'ether');
+
+        if ((newHighestBidConvert !== this.state.highestBid)) {
+            this.setState({ highestBid: newHighestBidConvert });
+        };
+    }
+
+    updateUserTotalBids = async () => {
+        const { contract, auctionId, userAccount, web3Provider } = this.state;
+        const userTotalBids = await contract.methods.getUserTotalBids(auctionId, userAccount).call();
+        const newUserTotalBidsConvert = web3Provider.utils.fromWei(userTotalBids, 'ether');
+
+        if ((newUserTotalBidsConvert !== this.state.userTotalBids)) {
+            this.setState({ userTotalBids: newUserTotalBidsConvert });
+        };
+    }
+
 
     onClickPlaceBid = async (event) => {
         event.preventDefault();
@@ -97,35 +145,63 @@ export default withRouter(class Home extends Component {
             if (response) {
                 const bidAlert = <Alert type="success">Successfully placed Bid!</Alert>;
                 this.setState({ bidAlert });
-            }
+                this.onLogBidEvent();
+            };
         }).catch((error) => {
             if (error) {
                 const bidAlert = <Alert type="danger">Error: Could not place Bid. See console for more details.</Alert>;
                 this.setState({ bidAlert });
-            }
+            };
         });
-    };
+    }
+
+    onLogBidEvent = async () => {
+        const { auctionContract, web3Provider } = this.state;
+
+        await auctionContract.events.bidEvent({ fromBlock: 'latest' })
+            .on("error", (error) => {
+                console.log(error);
+            })
+            .on("data", async (event) => {
+                const userAddress = event.returnValues[0];
+                const bidAmount = web3Provider.utils.fromWei(event.returnValues[1], 'ether');
+                const transactionHash = event['transactionHash'];
+                // const auctionAddress = event['address'];
+                const bidEventLog = "New Bid from User Address: " + userAddress + " at " + bidAmount + " ETH. Transaction (TX) Hash at : " + transactionHash + " on " + convertTimestampToDate(Math.floor(Date.now() / 1000), "time") + ".";
+
+                // Prevent duplicate logs
+                if (this.state.bidEventLog !== bidEventLog) {
+                    var eventMessage = document.createElement("p");
+                    eventMessage.innerText = bidEventLog;
+                    var horizontalRuler = document.createElement("hr");
+                    document.getElementById("bidEventLogs").append(eventMessage);
+                    document.getElementById("bidEventLogs").append(horizontalRuler);
+
+                    this.setState({ bidEventLog });
+                };
+            });
+    }
 
     handleBidValue = (event) => {
         this.setState({ bidValue: event.target.value });
-    };
+    }
 
     onClickWithdraw = async (event) => {
         event.preventDefault();
         const { contract, web3Provider, userAccount, auctionId } = this.state;
 
-        await contract.methods.withdraw(auctionId).send( {from: userAccount} ).then (async (response) => {
+        await contract.methods.withdraw(auctionId).send({ from: userAccount }).then(async (response) => {
             if (response) {
                 const bidAlert = <Alert type="success">Successfully withdrawn!</Alert>;
                 this.setState({ bidAlert });
-            }
+            };
         }).catch((error) => {
             if (error) {
                 const bidAlert = <Alert type="danger">Error: Could not withdraw. See console for more details.</Alert>;
                 this.setState({ bidAlert });
-            }
+            };
         });
-    };
+    }
 
     render() {
         return (
@@ -133,7 +209,7 @@ export default withRouter(class Home extends Component {
                 {this.state.bidAlert}
                 <div className="flex mt-4 card border">
                     <div className="row-span-3 pl-5 pt-5">
-                        {this.state.ipfsImageHash === null ? (<p>Loading image...</p>) : (<Image src={`https://ipfs.infura.io/ipfs/${this.state.ipfsImageHash}`} width={670} height={440}></Image>)}
+                        {this.state.ipfsImageHash === null ? (<p>Loading image...</p>) : (<Image src={`https://ipfs.infura.io/ipfs/${this.state.ipfsImageHash}`} width={670} height={440} priority={true}></Image>)}
                     </div>
 
                     <div className="row-span-2 col-span-2 pt-5 ml-10">
@@ -180,12 +256,13 @@ export default withRouter(class Home extends Component {
                 </div>
 
                 <div className="flex">
-                    <div className="mt-4 card border w-1/2 mr-4">
+                    <div id="bidEventLogs" className="mt-4 card border w-1/2 mr-4">
                         <p className="mb-2 text-lg">Auction Event Logs</p>
                         <hr className="pb-4 border-slate-400" />
+                        <p id="eventLogs"></p>
                     </div>
                 </div>
             </div>
         )
-    }
+    };
 })

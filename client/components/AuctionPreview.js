@@ -24,10 +24,11 @@ export default class AuctionPreviewComponent extends Component {
             itemDescription: null,
             itemCondition: null,
             ipfsImageHash: null
-        }
-    };
+        };
+    }
 
     componentDidMount = async () => {
+
         try {
             const contract = this.state.contract;
             const id = this.state.id;
@@ -50,14 +51,14 @@ export default class AuctionPreviewComponent extends Component {
 
         } catch (error) {
             console.log(error);
-        }
-    };
+        };
+    }
 
     render() {
         return (
             <div className="grid grid-rows-2 grid-flow-col gap-4 pb-4 border mb-4">
                 <div className="row-span-3 pl-5 pt-5">
-                    {this.state.ipfsImageHash === null ? (<p>Loading image...</p>) : (<Image src={`https://ipfs.infura.io/ipfs/${this.state.ipfsImageHash}`} width={390} height={250}></Image>)}
+                    {this.state.ipfsImageHash === null ? (<p>Loading image...</p>) : (<Image src={`https://ipfs.infura.io/ipfs/${this.state.ipfsImageHash}`} width={390} height={250} priority={true}></Image>)}
                 </div>
 
                 <div className="row-span-2 col-span-2 pt-5 pr-2">
@@ -74,5 +75,5 @@ export default class AuctionPreviewComponent extends Component {
                 </div>
             </div>
         )
-    }
+    };
 }
