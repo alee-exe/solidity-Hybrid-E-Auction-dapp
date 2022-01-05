@@ -93,7 +93,7 @@ contract Auction {
         return true;
     }
 
-    function withdraw(address _bidder) public returns (bool) {
+    function withdrawBid(address _bidder) public returns (bool) {
         require(
             block.timestamp > endBlockTimeStamp || auctionStatus != STATUS.ONGOING,
             "You can only withdraw at the end of the auction or when it is cancelled."

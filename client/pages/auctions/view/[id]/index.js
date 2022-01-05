@@ -5,6 +5,7 @@ import getWeb3 from '@/components/getWeb3.js';
 import AuctionListing from '@/build/contracts/AuctionListing.json';
 import Auction from '@/build/contracts/Auction.json';
 import Alert from '@/components/Alert.js';
+import Tooltip from '@/components/Tooltip.js';
 import { convertTimestampToDate, enumStatus } from '@/components/AuctionUtils.js';
 
 
@@ -16,6 +17,7 @@ export default withRouter(class Home extends Component {
         userTotalBids: null,
         contract: null,
         auctionContract: null,
+        auctionAddress: null,
         owner: null,
         itemName: null,
         itemCondition: null,
@@ -47,7 +49,8 @@ export default withRouter(class Home extends Component {
             const id = this.props.router.query.id - 1;
 
             const listedAuctions = await contract.methods.getListedAuctions().call();
-            const auctionContract = new web3.eth.Contract(Auction['abi'], listedAuctions[id]);
+            const auctionAddress = listedAuctions[id];
+            const auctionContract = new web3.eth.Contract(Auction['abi'], auctionAddress);
 
             const owner = await contract.methods.getOwner(id).call();
             const startBlockTimeStamp = await contract.methods.getStartBlockTimeStamp(id).call();
@@ -68,15 +71,15 @@ export default withRouter(class Home extends Component {
             const userTotalBids = await contract.methods.getUserTotalBids(id, userAccount).call();
             const userTotalBidsConvert = web3.utils.fromWei(userTotalBids, 'ether');
 
-            this.setState({ web3Provider: web3, contract, auctionContract, userAccount, userTotalBids: userTotalBidsConvert, owner, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid: highestBidConvert, auctionStatus, auctionTimer, auctionId: id });
+            this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userTotalBids: userTotalBidsConvert, owner, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid: highestBidConvert, auctionStatus, auctionTimer, auctionId: id });
 
             this.intervalAuctionTimer = setInterval(() => this.setState({ auctionTimer: endBlockTimeStamp - Math.floor(Date.now() / 1000) }), 1000);
 
             this.intervalAuctionStatus = setInterval(() => {
-                if (this.state.auctionTimer <= 0) {
+                if (this.state.auctionTimer <= 0 || this.state.auctionStatus == 1) {
                     this.updateAuctionStatus();
                 };
-            }, 300000);
+            }, 10000);
 
             this.intervalHighestBidder = setInterval(() => {
                 this.updateHighestBidder();
@@ -101,9 +104,18 @@ export default withRouter(class Home extends Component {
         clearInterval(this.intervalUserTotalBids);
     }
 
-    updateAuctionStatus() {
+    updateAuctionStatus = async () => {
+        const { contract, auctionId } = this.state;
+
+        // Check if auction has ended
         if ((this.state.endBlockTimeStamp - Math.floor(Date.now() / 1000)) <= 0) {
             this.setState({ auctionStatus: 2 });
+        };
+
+        // Check if auction has been cancelled
+        const auctionStatus = await contract.methods.getAuctionStatus(auctionId).call();
+        if (auctionStatus == 0) {
+            this.setState({ auctionStatus: 0 });
         };
     }
 
@@ -136,7 +148,7 @@ export default withRouter(class Home extends Component {
         };
     }
 
-
+    // event prevent default to allow user to accept MetaMask transaction
     onClickPlaceBid = async (event) => {
         event.preventDefault();
         const { contract, web3Provider, userAccount, bidValue, auctionId } = this.state;
@@ -157,25 +169,30 @@ export default withRouter(class Home extends Component {
 
     onLogBidEvent = async () => {
         const { auctionContract, web3Provider } = this.state;
+        console.log("Registered user bid event.");
 
         await auctionContract.events.bidEvent({ fromBlock: 'latest' })
             .on("error", (error) => {
                 console.log(error);
             })
             .on("data", async (event) => {
+                console.log("Creating bid event log message.");
                 const userAddress = event.returnValues[0];
                 const bidAmount = web3Provider.utils.fromWei(event.returnValues[1], 'ether');
                 const transactionHash = event['transactionHash'];
                 // const auctionAddress = event['address'];
-                const bidEventLog = "New Bid from User Address: " + userAddress + " at " + bidAmount + " ETH. Transaction (TX) Hash at : " + transactionHash + " on " + convertTimestampToDate(Math.floor(Date.now() / 1000), "time") + ".";
+                const bidEventLog = "<span class='font-bold'>New Bid from User Address: </span>" + userAddress + " at " + bidAmount + " ETH. <br> <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + " on " + convertTimestampToDate(Math.floor(Date.now() / 1000)) + ".";
 
                 // Prevent duplicate logs
                 if (this.state.bidEventLog !== bidEventLog) {
-                    var eventMessage = document.createElement("p");
-                    eventMessage.innerText = bidEventLog;
-                    var horizontalRuler = document.createElement("hr");
-                    document.getElementById("bidEventLogs").append(eventMessage);
-                    document.getElementById("bidEventLogs").append(horizontalRuler);
+                    console.log("Detected new bid log event message.");
+                    // let eventMessage = document.createElement("p");
+                    // eventMessage.innerText = bidEventLog;
+                    // let horizontalRuler = document.createElement("hr");
+                    // document.getElementById("auctionEventLogs").append(eventMessage);
+                    // document.getElementById("auctionEventLogs").append(horizontalRuler);
+
+                    document.getElementById("singleAuctionEventLog").innerHTML = bidEventLog;
 
                     this.setState({ bidEventLog });
                 };
@@ -188,12 +205,13 @@ export default withRouter(class Home extends Component {
 
     onClickWithdraw = async (event) => {
         event.preventDefault();
-        const { contract, web3Provider, userAccount, auctionId } = this.state;
+        const { contract, userAccount, auctionId } = this.state;
 
-        await contract.methods.withdraw(auctionId).send({ from: userAccount }).then(async (response) => {
+        await contract.methods.withdrawBid(auctionId).send({ from: userAccount }).then(async (response) => {
             if (response) {
                 const bidAlert = <Alert type="success">Successfully withdrawn!</Alert>;
                 this.setState({ bidAlert });
+                this.onLogWithdrawEvent();
             };
         }).catch((error) => {
             if (error) {
@@ -202,6 +220,67 @@ export default withRouter(class Home extends Component {
             };
         });
     }
+
+    onLogWithdrawEvent = async () => {
+        const { auctionContract } = this.state;
+        console.log("Registered user withdraw event.");
+
+        await auctionContract.events.withdrawalEvent({ fromBlock: 'latest' })
+            .on("error", (error) => {
+                console.log(error);
+            })
+            .on("data", async (event) => {
+                console.log("Creating user withdraw event message.");
+                console.log(event);
+
+                const userAddress = event.returnValues[0];
+                const transactionHash = event['transactionHash'];
+                const withdrawEventLog = "<span class='font-bold'>User: </span>" + userAddress + " has withdrawn from the Auction. <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + ".";
+
+                document.getElementById("singleAuctionEventLog").innerHTML = withdrawEventLog;
+            });
+    }
+
+    onClickCancel = async (event) => {
+        event.preventDefault();
+        const { contract, userAccount, auctionId } = this.state;
+
+        await contract.methods.cancelAuction(auctionId).send({ from: userAccount }).then(async (response) => {
+            if (response) {
+                const bidAlert = <Alert type="success">Successfully cancelled this Auction.</Alert>;
+                this.setState({ bidAlert });
+                this.onLogCancelEvent();
+            };
+        }).catch((error) => {
+            if (error) {
+                const bidAlert = <Alert type="danger">Error: Could not cancel auction. See console for more details.</Alert>;
+                this.setState({ bidAlert });
+            };
+        });
+    }
+
+
+    onLogCancelEvent = async () => {
+        const { auctionContract } = this.state;
+        console.log("Registered owner cancel event.");
+
+        await auctionContract.events.statusEvent({ fromBlock: 'latest' })
+            .on("error", (error) => {
+                console.log(error);
+            })
+            .on("data", async (event) => {
+                console.log("Creating owner event cancel message.");
+                console.log(event);
+
+                const userAddress = event.returnValues[0];
+                const transactionHash = event['transactionHash'];
+                const cancelEventLog = "<span class='font-bold'>Owner: </span>" + userAddress + " has cancelled the Auction. <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + ".";
+
+                document.getElementById("singleAuctionEventLog").innerHTML = cancelEventLog;
+            });
+
+    }
+
 
     render() {
         return (
@@ -221,7 +300,8 @@ export default withRouter(class Home extends Component {
                         <p className="text-lg pb-3">"{this.state.itemCondition}"</p>
 
                         <p className="pb-3"><span className="font-bold"> Auction Owner (Address): </span>{this.state.owner}</p>
-                        <p className="pb-3"><span className="font-bold">Auction End Date: </span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {convertTimestampToDate(this.state.auctionTimer, "time")})</p>
+                        <p className="pb-3"><span className="font-bold">Auction Contract (Address): </span>{this.state.auctionAddress}</p>
+                        <p className="pb-3"><span className="font-bold">Auction End Date: </span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {this.state.auctionStatus == 0 ? ("CANCELLED") : (convertTimestampToDate(this.state.auctionTimer, "time"))})</p>
 
                         <p className="pb-3"><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>
                         <p className="pb-3"><span className="font-bold">Created on: </span>{convertTimestampToDate(this.state.startBlockTimeStamp)}.</p>
@@ -231,6 +311,8 @@ export default withRouter(class Home extends Component {
 
                 <div className="flex">
                     <div className="mt-4 card border w-1/2 mr-4">
+                        <p className="mb-2 text-lg">Auction Bids</p>
+                        <hr className="pb-4 border-slate-400" />
                         <p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p>
                         <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid} ETH</p>
                         <p><span className="font-bold">Your Total Bids: </span>{this.state.userTotalBids} ETH</p>
@@ -241,7 +323,7 @@ export default withRouter(class Home extends Component {
                             <p className="mb-4">Enter your Bid Value (Converts from Wei to ETH): </p>
                             <form onSubmit={this.onClickPlaceBid} className="flex">
                                 <input type="number" min="0" step="any" placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />
-                                <button type="submit" className="font-bold bg-blue-500 text-white rounded p-4 shadow-lg">
+                                <button type="submit" id="bid" className="font-bold bg-blue-500 text-white rounded p-4 shadow-lg">
                                     Place Bid
                                 </button>
                             </form>
@@ -256,10 +338,16 @@ export default withRouter(class Home extends Component {
                 </div>
 
                 <div className="flex">
-                    <div id="bidEventLogs" className="mt-4 card border w-1/2 mr-4">
+                    <div id="auctionEventLogs" className="mt-4 card border w-4/5 mr-4">
                         <p className="mb-2 text-lg">Auction Event Logs</p>
                         <hr className="pb-4 border-slate-400" />
-                        <p id="eventLogs"></p>
+                        <p id="singleAuctionEventLog"></p>
+                    </div>
+
+                    <div id="auctionOwnerOperations" className="mt-4 card border w-1/5">
+                        <div className="mb-2 text-lg flex">Auction Owner Operations <Tooltip header="Auction Owner Operations" message="Only the Contract Owner of this Auction can perform these operations." ></Tooltip></div>
+                        <hr className="pb-4 border-slate-400" />
+                        <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg w-4/5" id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button>
                     </div>
                 </div>
             </div>
