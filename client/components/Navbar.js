@@ -18,9 +18,14 @@ export default function Navbar() {
                             Create Auction
                         </a>
                     </Link>
-                    <Link href="/my-auction-history">
+                    <Link href="/my-auction-activity">
                         <a className="mr-6 font-bold text-blue-500">
                             My Auction Activity
+                        </a>
+                    </Link>
+                    <Link href="/my-bid-activity">
+                        <a className="mr-6 font-bold text-blue-500">
+                            My Current Bids
                         </a>
                     </Link>
                     <Link href="/creator-dashboard">
