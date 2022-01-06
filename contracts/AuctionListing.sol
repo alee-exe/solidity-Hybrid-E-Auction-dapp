@@ -73,6 +73,10 @@ contract AuctionListing {
         return listedAuctions[_i].cancelAuction(msg.sender);
     }
 
+    function endAuction(uint _i) public returns (Auction.STATUS) {
+        return listedAuctions[_i].endAuction();
+    }
+
     function getUserTotalBids(uint _i, address _bidder) public view returns (uint256) {
         return listedAuctions[_i].trackAllBids(_bidder);
     }

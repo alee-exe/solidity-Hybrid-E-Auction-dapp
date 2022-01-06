@@ -23,7 +23,7 @@ export default function Navbar() {
                             My Auction Activity
                         </a>
                     </Link>
-                    <Link href="/my-bid-activity">
+                    <Link href="/my-current-bids">
                         <a className="mr-6 font-bold text-blue-500">
                             My Current Bids
                         </a>

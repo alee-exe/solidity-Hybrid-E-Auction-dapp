@@ -109,6 +109,8 @@ export default withRouter(class Home extends Component {
 
         // Check if auction has ended
         if ((this.state.endBlockTimeStamp - Math.floor(Date.now() / 1000)) <= 0) {
+            console.log("wadwa");
+            const auctionStatusEnded = await contract.methods.endAuction(auctionId).call();
             this.setState({ auctionStatus: 2 });
         };
 

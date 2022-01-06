@@ -45,7 +45,7 @@ contract Auction {
         owner = _owner;
         startBlockTimeStamp = block.timestamp;
         // time is in hours
-        endBlockTimeStamp = startBlockTimeStamp + _biddingTime * 1 hours;
+        endBlockTimeStamp = startBlockTimeStamp + (_biddingTime * 1 hours);
         auctionStatus = STATUS.ONGOING;
         auctionedItem.name = _name;
         auctionedItem.condition = _condition;
@@ -72,7 +72,12 @@ contract Auction {
     }
 
     modifier not_ended() {
-        require(block.timestamp <= endBlockTimeStamp);
+        require(block.timestamp <= endBlockTimeStamp, "Auction must not be ended.");
+        _;
+    }
+
+    modifier is_ended() {
+        require(block.timestamp >= endBlockTimeStamp, "Auction must be ended.");
         _;
     }
 
@@ -116,7 +121,14 @@ contract Auction {
 
     function cancelAuction(address _owner) public only_owner(_owner) only_ongoing returns (STATUS) {
         auctionStatus = STATUS.CANCELLED;
-        emit statusEvent("Auction state has changed.", block.timestamp);
+        emit statusEvent("Auction state is cancelled.", block.timestamp);
+
+        return auctionStatus;
+    }
+
+    function endAuction() public is_ended returns (STATUS) {
+        auctionStatus = STATUS.ENDED;
+        emit statusEvent("Auction state is ended.", block.timestamp);
 
         return auctionStatus;
     }
