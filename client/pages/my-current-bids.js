@@ -79,6 +79,7 @@ export default class CurrentBidsPage extends Component {
 
     render() {
         return (
+            // TO-DO: Change the auction preview container to something with a withdraw button instead?
             <div className="border pl-20 pr-20 pt-10 pb-20">
                 <h1 className="text-2xl font-bold pb-4"> Your Current Bids </h1>
                 <hr className="border-slate-400 pb-4" />

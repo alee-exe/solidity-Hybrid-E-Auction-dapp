@@ -7,6 +7,7 @@ import Auction from '@/build/contracts/Auction.json';
 import Alert from '@/components/Alert.js';
 import Tooltip from '@/components/Tooltip.js';
 import { convertTimestampToDate, enumStatus } from '@/components/AuctionUtils.js';
+import axios from "axios";
 
 
 export default withRouter(class Home extends Component {
@@ -32,7 +33,9 @@ export default withRouter(class Home extends Component {
         auctionId: null,
         bidAlert: null,
         bidValue: null,
-        bidEventLog: null
+        bidEventLog: null,
+        ETHtoFiatCurrency: "GBP",
+        ETHtoFiatConversion: null
     };
 
     componentDidMount = async () => {
@@ -44,7 +47,7 @@ export default withRouter(class Home extends Component {
             const contract = new web3.eth.Contract(AuctionListing['abi'], contractAddress);
             const userAddresses = await web3.eth.getAccounts();
             const userAccount = userAddresses[0];
-            // web3.eth.defaultAccount = userAccount;
+            //web3.eth.defaultAccount = userAccount;
 
             const id = this.props.router.query.id - 1;
 
@@ -90,7 +93,8 @@ export default withRouter(class Home extends Component {
                 this.updateUserTotalBids();
             }, 1000);
 
-            this.updateAuctionStatus();
+            this.fetchETHtoFiatCurrency();
+
         } catch (error) {
             console.log(error);
         };
@@ -105,19 +109,20 @@ export default withRouter(class Home extends Component {
     }
 
     updateAuctionStatus = async () => {
-        const { contract, auctionId } = this.state;
-
+        const { contract, auctionId, userAccount } = this.state;
         // Check if auction has ended
-        if ((this.state.endBlockTimeStamp - Math.floor(Date.now() / 1000)) <= 0) {
-            console.log("wadwa");
-            const auctionStatusEnded = await contract.methods.endAuction(auctionId).call();
-            this.setState({ auctionStatus: 2 });
+        if ((this.state.endBlockTimeStamp - Math.floor(Date.now() / 1000)) <= 0 && this.state.auctionStatus == 1) {
+            console.log("AUCTION HAS ENDED");
+
+            // User must accept the new state
+            const auctionStatusEnded = await contract.methods.endAuction(auctionId).send({ from: userAccount });
+            this.setState({ auctionStatus: auctionStatusEnded });
         };
 
-        // Check if auction has been cancelled
-        const auctionStatus = await contract.methods.getAuctionStatus(auctionId).call();
-        if (auctionStatus == 0) {
-            this.setState({ auctionStatus: 0 });
+        // Check if auction has been cancelled or ended
+        const auctionStatusCheck = await contract.methods.getAuctionStatus(auctionId).call();
+        if (auctionStatusCheck != this.state.auctionStatus) {
+            this.setState({ auctionStatus: auctionStatusCheck });
         };
     }
 
@@ -203,6 +208,7 @@ export default withRouter(class Home extends Component {
 
     handleBidValue = (event) => {
         this.setState({ bidValue: event.target.value });
+        this.fetchETHtoFiatCurrency();
     }
 
     onClickWithdraw = async (event) => {
@@ -261,7 +267,6 @@ export default withRouter(class Home extends Component {
         });
     }
 
-
     onLogCancelEvent = async () => {
         const { auctionContract } = this.state;
         console.log("Registered owner cancel event.");
@@ -280,7 +285,24 @@ export default withRouter(class Home extends Component {
 
                 document.getElementById("singleAuctionEventLog").innerHTML = cancelEventLog;
             });
+    }
 
+    // Fetches the price of 1 ETH to Fiat currencies
+    fetchETHtoFiatCurrency = async () => {
+        const { data } = await axios.get(`https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD,EUR,GBP`);
+        const { ETHtoFiatCurrency, bidValue, web3Provider } = this.state;
+
+        if (bidValue === null) {
+            bidValue = 0;
+        }
+
+        const ETHtoFiatConversion = (data[ETHtoFiatCurrency] * bidValue).toFixed(2);
+        this.setState({ ETHtoFiatConversion });
+    }
+
+    handleFiatCurrency = (event) => {
+        this.setState({ ETHtoFiatCurrency: event.target.value });
+        this.fetchETHtoFiatCurrency();
     }
 
 
@@ -308,7 +330,6 @@ export default withRouter(class Home extends Component {
                         <p className="pb-3"><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>
                         <p className="pb-3"><span className="font-bold">Created on: </span>{convertTimestampToDate(this.state.startBlockTimeStamp)}.</p>
                     </div>
-
                 </div>
 
                 <div className="flex">
@@ -321,7 +342,7 @@ export default withRouter(class Home extends Component {
                     </div>
 
                     <div className="mt-4 flex card border w-1/2">
-                        <div className="w-1/2 mr-5">
+                        <div className="w-1/2">
                             <p className="mb-4">Enter your Bid Value (Converts from Wei to ETH): </p>
                             <form onSubmit={this.onClickPlaceBid} className="flex">
                                 <input type="number" min="0" step="any" placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />
@@ -329,12 +350,23 @@ export default withRouter(class Home extends Component {
                                     Place Bid
                                 </button>
                             </form>
+
+                            <div className="mt-3">
+                                {this.state.bidValue === null ? (<p className="italic">Enter bid value to convert to Fiat Currency...</p>) : (<div className="italic flex"><p className="mr-2">This is equivalent to... {this.state.ETHtoFiatConversion} {this.state.ETHtoFiatCurrency}</p> <Tooltip header="ETH to Fiat Conversion" message="This price conversion is done using the latest market price for ETH from https://www.cryptocompare.com/." ></Tooltip></div>)}
+                            </div>
                         </div>
 
+                        <select id="fiat" className="bg-emerald-600 rounded-r-lg text-white shadow-lg font-bold" onChange={this.handleFiatCurrency}>
+                            <option value="GBP" selected="selected">GBP</option>
+                            <option value="EUR">EUR</option>
+                            <option value="USD">USD</option>
+                        </select>
+
                         <div className="w-1/2 pl-10">
-                            <p className="mb-4">Early Withdraw from Auction: </p>
-                            <button className="font-bold bg-slate-500 text-white rounded p-4 shadow-lg w-4/5" id="withdraw" onClick={this.onClickWithdraw} type="button">Withdraw
-                                bids</button>
+                            <div className="mb-4 flex"><p className="mr-1">Withdraw from Auction: </p><Tooltip header="Withdrawal of Bid" message="You can only withdraw once the Auction has expired (Ended or Cancelled status)." ></Tooltip></div>
+                            {this.state.auctionStatus != 1 ? <button className="font-bold bg-slate-500 text-white rounded p-4 shadow-lg w-4/5" id="withdraw" onClick={this.onClickWithdraw} type="button">Withdraw
+                                bids</button> : <button className="font-bold bg-slate-500 text-white rounded p-4 shadow-lg w-4/5 opacity-50 cursor-not-allowed" disabled id="withdraw" onClick={this.onClickWithdraw} type="button">Withdraw
+                                    bids</button>}
                         </div>
                     </div>
                 </div>
@@ -347,9 +379,10 @@ export default withRouter(class Home extends Component {
                     </div>
 
                     <div id="auctionOwnerOperations" className="mt-4 card border w-1/5">
-                        <div className="mb-2 text-lg flex">Auction Owner Operations <Tooltip header="Auction Owner Operations" message="Only the Contract Owner of this Auction can perform these operations." ></Tooltip></div>
+                        <div className="mb-2 text-lg flex"><p className="mr-1">Auction Owner Operations</p><Tooltip header="Auction Owner Operations" message="Only the Contract Owner of this Auction can perform these operations." ></Tooltip></div>
                         <hr className="pb-4 border-slate-400" />
-                        <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg w-4/5" id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button>
+                        {this.state.userAccount === this.state.owner ? <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg w-4/5" id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button> :
+                            <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg w-4/5 opacity-50 cursor-not-allowed" disabled id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button>}
                     </div>
                 </div>
             </div>

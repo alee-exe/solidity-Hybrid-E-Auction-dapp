@@ -59,33 +59,30 @@ contract Auction {
     // variables with the public modifier have automatic getters
     mapping(address => uint256) public trackAllBids;
 
-    // require will refund the remaining gas to the caller
-    modifier only_ongoing() {
+    // makes the contract ownable - giving contract owner specific priviledges
+    modifier only_owner(address _user) {
+        // require will refund the remaining gas to the caller
+        require(_user == owner, "Must be the Auction contract owner.");
+        _;
+    }
+
+    modifier is_ongoing() {
         require(auctionStatus == STATUS.ONGOING, "Auction status must be ONGOING.");
         _;
     }
 
-    // makes the contract ownable - giving contract owner specific priviledges
-    modifier only_owner(address _user) {
-        require(_user == owner, "Must be the contract owner.");
+    modifier is_expired() {
+        require(auctionStatus != STATUS.ONGOING, "Auction status must be EXPIRED (CANCELLED OR ENDED).");
         _;
     }
 
-    modifier not_ended() {
-        require(block.timestamp <= endBlockTimeStamp, "Auction must not be ended.");
-        _;
-    }
-
-    modifier is_ended() {
-        require(block.timestamp >= endBlockTimeStamp, "Auction must be ended.");
-        _;
-    }
-
-    function placeBid(address _bidder) public payable only_ongoing not_ended returns (bool) {
-        require(
-            msg.value > highestBid,
-            "Placed bid must be greater than highest bid."
-        );
+    function placeBid(address _bidder)
+        public
+        payable
+        is_ongoing
+        returns (bool)
+    {
+        require(msg.value > highestBid, "Placed bid must be greater than highest bid.");
 
         highestBidder = _bidder;
         highestBid = msg.value;
@@ -98,12 +95,7 @@ contract Auction {
         return true;
     }
 
-    function withdrawBid(address _bidder) public returns (bool) {
-        require(
-            block.timestamp > endBlockTimeStamp || auctionStatus != STATUS.ONGOING,
-            "You can only withdraw at the end of the auction or when it is cancelled."
-        );
-
+    function withdrawBid(address _bidder) public is_expired returns (bool) {
         require(trackAllBids[_bidder] > 0, "You've already withdrawn from this auction.");
         uint256 amount;
 
@@ -119,14 +111,37 @@ contract Auction {
         return true;
     }
 
-    function cancelAuction(address _owner) public only_owner(_owner) only_ongoing returns (STATUS) {
+    function claimBid(address _owner)
+        public
+        only_owner(_owner)
+        is_expired
+        returns (bool)
+    {
+        require(trackAllBids[highestBidder] > 0, "Highest bidder must have a bid greater than 0 ETH to claim.");
+        uint256 winningAmount;
+
+        winningAmount = trackAllBids[highestBidder];
+        trackAllBids[highestBidder] = 0;
+
+        payable(_owner).transfer(winningAmount);
+        emit claimEvent(_owner, winningAmount);
+
+        return true;
+    }
+
+    function cancelAuction(address _owner)
+        public
+        only_owner(_owner)
+        is_ongoing
+        returns (STATUS)
+    {
         auctionStatus = STATUS.CANCELLED;
         emit statusEvent("Auction state is cancelled.", block.timestamp);
 
         return auctionStatus;
     }
 
-    function endAuction() public is_ended returns (STATUS) {
+    function endAuction() public is_ongoing returns (STATUS) {
         auctionStatus = STATUS.ENDED;
         emit statusEvent("Auction state is ended.", block.timestamp);
 
@@ -135,5 +150,6 @@ contract Auction {
 
     event bidEvent(address indexed highestBidder, uint256 highestBid);
     event withdrawalEvent(address withdrawer, uint256 amount);
+    event claimEvent(address owner, uint256 highestBid);
     event statusEvent(string message, uint256 time);
 }
