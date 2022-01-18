@@ -28,9 +28,9 @@ export default function Navbar() {
                             My Current Bids
                         </a>
                     </Link>
-                    <Link href="/creator-dashboard">
+                    <Link href="/user-dashboard">
                         <a className="mr-6 font-bold text-blue-500">
-                            Creator Dashboard
+                            User Dashboard
                         </a>
                     </Link>
                 </div>

@@ -6,7 +6,7 @@ import AuctionListing from '@/build/contracts/AuctionListing.json';
 import Auction from '@/build/contracts/Auction.json';
 import Alert from '@/components/Alert.js';
 import Tooltip from '@/components/Tooltip.js';
-import { convertTimestampToDate, enumStatus } from '@/components/AuctionUtils.js';
+import { convertTimestampToDate, enumStatus, checkAuctionType } from '@/components/AuctionUtils.js';
 import axios from "axios";
 
 
@@ -20,6 +20,10 @@ export default withRouter(class Home extends Component {
         auctionContract: null,
         auctionAddress: null,
         owner: null,
+        startingBid: null,
+        bidIncrement: null,
+        sellingPrice: null,
+        auctionType: null,
         itemName: null,
         itemCondition: null,
         itemDescription: null,
@@ -28,6 +32,7 @@ export default withRouter(class Home extends Component {
         endBlockTimeStamp: null,
         highestBidder: null,
         highestBid: null,
+        totalNumberOfBids: null,
         auctionStatus: null,
         auctionTimer: null,
         auctionId: null,
@@ -61,10 +66,14 @@ export default withRouter(class Home extends Component {
             const highestBid = await contract.methods.getHighestBid(id).call();
             const highestBidConvert = web3.utils.fromWei(highestBid, 'ether');
             const highestBidder = await contract.methods.getHighestBidder(id).call();
+            const startingBid = web3.utils.fromWei(await contract.methods.getStartingBid(id).call(), 'ether');
+            const bidIncrement = web3.utils.fromWei(await contract.methods.getBidIncrement(id).call(), 'ether');
+            const sellingPrice = web3.utils.fromWei(await contract.methods.getSellingPrice(id).call(), 'ether');
 
             const auctionStatus = await contract.methods.getAuctionStatus(id).call();
             const auctionedItem = await contract.methods.getAuctionedItem(id).call();
             const auctionTimer = (endBlockTimeStamp - Math.floor(Date.now() / 1000));
+            const auctionType = await contract.methods.getIsPrivate(id).call();
 
             const itemName = auctionedItem[0];
             const itemDescription = auctionedItem[1];
@@ -73,8 +82,9 @@ export default withRouter(class Home extends Component {
 
             const userTotalBids = await contract.methods.getUserTotalBids(id, userAccount).call();
             const userTotalBidsConvert = web3.utils.fromWei(userTotalBids, 'ether');
+            const totalNumberOfBids = await contract.methods.getTotalNumberOfBids(id).call();
 
-            this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userTotalBids: userTotalBidsConvert, owner, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid: highestBidConvert, auctionStatus, auctionTimer, auctionId: id });
+            this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userTotalBids: userTotalBidsConvert, totalNumberOfBids, owner, startingBid, bidIncrement, sellingPrice, auctionType, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid: highestBidConvert, auctionStatus, auctionTimer, auctionId: id });
 
             this.intervalAuctionTimer = setInterval(() => this.setState({ auctionTimer: endBlockTimeStamp - Math.floor(Date.now() / 1000) }), 1000);
 
@@ -91,6 +101,7 @@ export default withRouter(class Home extends Component {
 
             this.intervalUserTotalBids = setInterval(() => {
                 this.updateUserTotalBids();
+                this.updateNumberOfTotalBids();
             }, 1000);
 
             this.fetchETHtoFiatCurrency();
@@ -152,6 +163,15 @@ export default withRouter(class Home extends Component {
 
         if ((newUserTotalBidsConvert !== this.state.userTotalBids)) {
             this.setState({ userTotalBids: newUserTotalBidsConvert });
+        };
+    }
+
+    updateNumberOfTotalBids = async () => {
+        const { contract, auctionId } = this.state;
+        const newTotalNumberOfBids = await contract.methods.getTotalNumberOfBids(auctionId).call();
+
+        if ((newTotalNumberOfBids !== this.state.totalNumberOfBids)) {
+            this.setState({ totalNumberOfBids: newTotalNumberOfBids });
         };
     }
 
@@ -315,7 +335,7 @@ export default withRouter(class Home extends Component {
                         {this.state.ipfsImageHash === null ? (<p>Loading image...</p>) : (<Image src={`https://ipfs.infura.io/ipfs/${this.state.ipfsImageHash}`} width={670} height={440} priority={true}></Image>)}
                     </div>
 
-                    <div className="row-span-2 col-span-2 pt-5 ml-10">
+                    <div className="row-span-2 col-span-2 pt-5 ml-10 leading-4">
                         <h1 className="font-bold text-3xl pb-3">{this.state.itemName}</h1>
                         <hr className="pb-4 border-slate-400" />
                         <p className="font-bold italic text-lg">The owner has described/noted this item as:</p>
@@ -328,6 +348,12 @@ export default withRouter(class Home extends Component {
                         <p className="pb-3"><span className="font-bold">Auction End Date: </span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {this.state.auctionStatus == 0 ? ("CANCELLED") : (convertTimestampToDate(this.state.auctionTimer, "time"))})</p>
 
                         <p className="pb-3"><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>
+                        <p className="pb-3"><span className="font-bold">Auction Type: </span>{checkAuctionType(this.state.auctionType)}</p>
+
+                        {this.state.startingBid == 0 ? null : (<p className="pb-3"><span className="font-bold">Starting Bid: </span>{this.state.startingBid} ETH</p>)}
+                        {this.state.bidIncrement == 0 ? null : (<p className="pb-3"><span className="font-bold">Bid Increment: </span>{this.state.bidIncrement} ETH</p>)}
+                        {this.state.sellingPrice == 0 ? null : ( <p className="pb-3"><span className="font-bold">Selling Price: </span>{this.state.sellingPrice} ETH</p>)}
+    
                         <p className="pb-3"><span className="font-bold">Created on: </span>{convertTimestampToDate(this.state.startBlockTimeStamp)}.</p>
                     </div>
                 </div>
@@ -339,13 +365,15 @@ export default withRouter(class Home extends Component {
                         <p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p>
                         <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid} ETH</p>
                         <p><span className="font-bold">Your Total Bids: </span>{this.state.userTotalBids} ETH</p>
+
+                        <p className="mt-2"><span className="font-bold">Total Number of Bids in this Auction: </span>{this.state.totalNumberOfBids}</p>
                     </div>
 
                     <div className="mt-4 flex card border w-1/2">
                         <div className="w-1/2">
                             <p className="mb-4">Enter your Bid Value (Converts from Wei to ETH): </p>
                             <form onSubmit={this.onClickPlaceBid} className="flex">
-                                <input type="number" min="0" step="any" placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />
+                                {this.state.bidIncrement == 0 ? (<input type="number" min="0" step="any" placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />) : (<input type="number" min="0" step={this.state.bidIncrement} placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />)}
                                 <button type="submit" id="bid" className="font-bold bg-blue-500 text-white rounded p-4 shadow-lg">
                                     Place Bid
                                 </button>

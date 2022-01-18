@@ -21,7 +21,20 @@ function enumStatus(enum_index) {
     return (status[enum_index]);
 };
 
+function checkAuctionType(isPrivate) {
+    let type = null;
+
+    if (isPrivate === "true") {
+        type = "PRIVATE (Sealed-bid)";
+    } else {
+        type = "PUBLIC (Open-bid)";
+    }
+
+    return type;
+};
+
 module.exports = {
     convertTimestampToDate,
-    enumStatus
+    enumStatus,
+    checkAuctionType
 }

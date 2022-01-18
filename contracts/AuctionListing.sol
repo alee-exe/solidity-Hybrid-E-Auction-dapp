@@ -11,6 +11,10 @@ contract AuctionListing {
 
     function createAuction(
         uint256 _biddingTime,
+        uint256 _startingBid,
+        uint256 _bidIncrement,
+        uint256 _sellingPrice,
+        bool _isPrivate,
         string memory _name,
         string memory _condition,
         string memory _description,
@@ -19,6 +23,10 @@ contract AuctionListing {
         Auction createdAuction = new Auction(
             msg.sender,
             _biddingTime,
+            _startingBid,
+            _bidIncrement,
+            _sellingPrice,
+            _isPrivate,
             _name,
             _condition,
             _description,
@@ -57,8 +65,24 @@ contract AuctionListing {
         return listedAuctions[_i].highestBid();
     }
 
-    function getAuctionStatus(uint _i) public view returns (Auction.STATUS) {
+    function getAuctionStatus(uint _i) public view returns (Auction.STATE) {
         return listedAuctions[_i].auctionStatus();
+    }
+
+    function getStartingBid(uint _i) public view returns (uint256) {
+        return listedAuctions[_i].startingBid();
+    }
+
+    function getBidIncrement(uint _i) public view returns (uint256) {
+        return listedAuctions[_i].bidIncrement();
+    }
+
+    function getSellingPrice(uint _i) public view returns (uint256) {
+        return listedAuctions[_i].sellingPrice();
+    }
+
+    function getIsPrivate(uint _i) public view returns (bool) {
+        return listedAuctions[_i].isPrivate();
     }
 
     function placeBid(uint _i) public payable returns (bool) {
@@ -73,16 +97,20 @@ contract AuctionListing {
         return listedAuctions[_i].claimBid(msg.sender);
     }
 
-    function cancelAuction(uint _i) public returns (Auction.STATUS) {
+    function cancelAuction(uint _i) public returns (Auction.STATE) {
         return listedAuctions[_i].cancelAuction(msg.sender);
     }
 
-    function endAuction(uint _i) public returns (Auction.STATUS) {
+    function endAuction(uint _i) public returns (Auction.STATE) {
         return listedAuctions[_i].endAuction();
     }
 
      function getUserTotalBids(uint _i, address _bidder) public view returns (uint256) {
         return listedAuctions[_i].trackAllBids(_bidder);
+    }
+
+    function getTotalNumberOfBids(uint _i) public view returns (uint256) {
+        return listedAuctions[_i].numberOfTotalBids();
     }
 
 }

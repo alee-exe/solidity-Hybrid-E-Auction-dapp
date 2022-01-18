@@ -22,14 +22,31 @@ export default function CreateAuctionPage() {
         const contract = new web3.eth.Contract(AuctionListing['abi'], contractAddress);
         const userAddresses = await web3.eth.getAccounts();
 
-        const { itemName, itemDescription, itemCondition, auctionDuration } = formField;
+        const { itemName, itemDescription, itemCondition, auctionDuration, auctionSellingPrice, auctionBidIncrement, auctionStartingBid, auctionIsPrivate } = formField;
 
-        contract.methods.createAuction(auctionDuration, itemName, itemDescription, itemCondition, ipfsImageHash).send({ from: userAddresses[0] }).then(async (response, error) => {
+        if (auctionSellingPrice === undefined) {
+            auctionSellingPrice = "0";
+        }
+
+        if (auctionBidIncrement === undefined) {
+            auctionBidIncrement = "0";
+        }
+
+        if (auctionStartingBid === undefined) {
+            auctionStartingBid = "0";
+        }
+
+        auctionSellingPrice = web3.utils.toWei(auctionSellingPrice, 'ether');
+        auctionBidIncrement = web3.utils.toWei(auctionBidIncrement, 'ether');
+        auctionStartingBid = web3.utils.toWei(auctionStartingBid, 'ether');
+
+        contract.methods.createAuction(auctionDuration, auctionSellingPrice, auctionBidIncrement, auctionStartingBid, auctionIsPrivate, itemName, itemDescription, itemCondition, ipfsImageHash).send({ from: userAddresses[0] }).then(async (response, error) => {
             if (!error) {
                 console.log(response);
                 setSubmitAlert(<Alert type="success">Successfully created Auction!</Alert>);
             } else {
-                setSubmitAlert(<Alert type="danger">Error: Could not create Auction.</Alert>);
+                console.log(error);
+                setSubmitAlert(<Alert type="danger">Error: Could not create Auction. See console for details.</Alert>);
             }
         });
     };
@@ -64,7 +81,18 @@ export default function CreateAuctionPage() {
 
                     <h1 className="pb-3 font-bold">Auction Properties</h1>
                     <div className="flex">Auction Duration (in Hours): <Tooltip header="Auction Duration" message="Specify the auction duration (i.e., the countdown duration for the auction timer) in hours." ></Tooltip></div>
-                    <input type="number" min="0" placeholder="Insert Duration" className="pt-2 mt-1 border rounded p-2 mb-8" onChange={event => updateFormField({ ...formField, auctionDuration: event.target.value })} required />
+                    <input type="number" min="0" placeholder="Insert Duration" className="pt-2 mt-1 border rounded p-2 mb-3" onChange={event => updateFormField({ ...formField, auctionDuration: event.target.value })} required />
+                    <div className="flex">Selling Price (Optional):<Tooltip header="Selling Price (Optional)" message="If you want bidders to be able to purchase your Auction Contract (i.e., directly buyout the auctioned item), then set a buyout price in ETH. Default value is 0 (No Selling Price)." ></Tooltip></div>
+                    <input type="number" min="0" placeholder="Insert Selling Price (in ETH)" className="pt-2 mt-1 border rounded p-2 mb-3" onChange={event => updateFormField({ ...formField, auctionSellingPrice: event.target.value })} />
+                    <div className="flex">Bid Increment (Optional):<Tooltip header="Bid Increment (Optional)" message="Specify the Bid Increment/Step for bids in ETH (i.e., the minimum bid interval for new bids). Default value is 0 (No Bid Increments)." ></Tooltip></div>
+                    <input type="number" min="0" placeholder="Insert Bid Increment (in ETH)" className="pt-2 mt-1 border rounded p-2 mb-3" onChange={event => updateFormField({ ...formField, auctionBidIncrement: event.target.value })} />
+                    <div className="flex">Starting Bid (Optional):<Tooltip header="Starting Bid (Optional)" message="Specify the starting/minimum initial bid in ETH. Default value is 0 (No Starting Bid)." ></Tooltip></div>
+                    <input type="number" min="0" placeholder="Insert Starting Bid (in ETH)" className="pt-2 mt-1 border rounded p-2 mb-3" onChange={event => updateFormField({ ...formField, auctionStartingBid: event.target.value })} />
+                    <div className="flex">Private Auction:<Tooltip header="Public/Private Auction" message="Specify the type of Auction. Public is an open-bid that provides all bidding information to bidders whereas Private is a sealed-bid that provides limited bidding information to bidders. Default value is false (public)." ></Tooltip></div>
+                    <select className="pt-2 mt-1 border rounded p-2 mb-3" onChange={event => updateFormField({ ...formField, auctionIsPrivate: event.target.value })} required>
+                        <option value="false">False</option>
+                        <option value="true">True</option>
+                    </select>
 
                     <button type="submit" className="font-bold mt-4 bg-blue-500 text-white rounded p-4 shadow-lg">
                         Create Auction

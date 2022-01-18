@@ -13,15 +13,26 @@ contract Auction {
     uint256 public highestBid;
     // Address of current highest bidder
     address public highestBidder;
+    // Minimum starting bid
+    uint256 public startingBid;
+    // Bid increment/step
+    uint256 public bidIncrement;
+    // Buyout/Selling price
+    uint256 public sellingPrice;
+    // Auction Type (Public or Private)
+    bool public isPrivate;
+    // Track number of total bids
+    uint256 public numberOfTotalBids = 0;
 
-    // Auction state
-    enum STATUS {
+
+    // Auction states
+    enum STATE {
         CANCELLED,
         ONGOING,
         ENDED
     }
 
-    STATUS public auctionStatus;
+    STATE public auctionStatus;
 
     // structure is a collection of variables using different data types
     // we define an Item structure for the auctioned item
@@ -37,6 +48,10 @@ contract Auction {
     constructor(
         address _owner,
         uint256 _biddingTime,
+        uint256 _startingBid,
+        uint256 _bidIncrement,
+        uint256 _sellingPrice,
+        bool _isPrivate,
         string memory _name,
         string memory _condition,
         string memory _description,
@@ -46,7 +61,11 @@ contract Auction {
         startBlockTimeStamp = block.timestamp;
         // time is in hours
         endBlockTimeStamp = startBlockTimeStamp + (_biddingTime * 1 hours);
-        auctionStatus = STATUS.ONGOING;
+        auctionStatus = STATE.ONGOING;
+        startingBid = _startingBid;
+        bidIncrement = _bidIncrement;
+        sellingPrice = _sellingPrice;
+        isPrivate = _isPrivate;
         auctionedItem.name = _name;
         auctionedItem.condition = _condition;
         auctionedItem.description = _description;
@@ -67,12 +86,12 @@ contract Auction {
     }
 
     modifier is_ongoing() {
-        require(auctionStatus == STATUS.ONGOING, "Auction status must be ONGOING.");
+        require(auctionStatus == STATE.ONGOING, "Auction status must be ONGOING.");
         _;
     }
 
     modifier is_expired() {
-        require(auctionStatus != STATUS.ONGOING, "Auction status must be EXPIRED (CANCELLED OR ENDED).");
+        require(auctionStatus != STATE.ONGOING, "Auction status must be EXPIRED (CANCELLED OR ENDED).");
         _;
     }
 
@@ -82,11 +101,27 @@ contract Auction {
         is_ongoing
         returns (bool)
     {
-        require(msg.value > highestBid, "Placed bid must be greater than highest bid.");
+        
+        if (bidIncrement > 0 ) {
+            require(msg.value >= highestBid + bidIncrement, "Placed bid must be greater than highest bid + bid increment.");
+        } else {
+            require(msg.value > highestBid, "Placed bid must be greater than highest bid.");
+        }
 
+        if (startingBid > 0 ) {
+            require(msg.value >= startingBid, "Initial bid must be greater or equal to starting bid.");
+        }
+        
+        numberOfTotalBids++;
         highestBidder = _bidder;
+        // msg.value is the bid value in wei
         highestBid = msg.value;
         bidders.push(highestBidder);
+
+        if (trackAllBids[_bidder] > 0) {
+            payable(_bidder).transfer(trackAllBids[_bidder]);
+            trackAllBids[_bidder] = 0;
+        }
 
         trackAllBids[highestBidder] = trackAllBids[highestBidder] + msg.value;
 
@@ -133,16 +168,17 @@ contract Auction {
         public
         only_owner(_owner)
         is_ongoing
-        returns (STATUS)
+        returns (STATE)
     {
-        auctionStatus = STATUS.CANCELLED;
+        require(auctionStatus != STATE.ENDED, "Cannot cancel an Auction that has ended.");
+        auctionStatus = STATE.CANCELLED;
         emit statusEvent("Auction state is cancelled.", block.timestamp);
 
         return auctionStatus;
     }
 
-    function endAuction() public is_ongoing returns (STATUS) {
-        auctionStatus = STATUS.ENDED;
+    function endAuction() public is_ongoing returns (STATE) {
+        auctionStatus = STATE.ENDED;
         emit statusEvent("Auction state is ended.", block.timestamp);
 
         return auctionStatus;
