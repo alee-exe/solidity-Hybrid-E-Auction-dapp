@@ -72,8 +72,6 @@ contract Auction {
         auctionedItem.ipfsImageHash = _ipfsImageHash;
     }
 
-    // dynamic array of all bidder's addresses
-    address[] bidders;
     // bids - maps all bidders with their total bids, hash map (KeyType => ValueType)
     // variables with the public modifier have automatic getters
     mapping(address => uint256) public trackAllBids;
@@ -81,7 +79,7 @@ contract Auction {
     // makes the contract ownable - giving contract owner specific priviledges
     modifier only_owner(address _user) {
         // require will refund the remaining gas to the caller
-        require(_user == owner, "Must be the Auction contract owner.");
+        require(_user == owner, "Only Auction owner is allowed to perform this operation.");
         _;
     }
 
@@ -95,13 +93,18 @@ contract Auction {
         _;
     }
 
+    modifier only_bidder(address _user) {
+        require(_user != owner, "Only bidders are allowed to perform this operation.");
+        _;
+    }
+
     function placeBid(address _bidder)
         public
         payable
         is_ongoing
+        only_bidder(_bidder)
         returns (bool)
     {
-        
         if (bidIncrement > 0 ) {
             require(msg.value >= highestBid + bidIncrement, "Placed bid must be greater than highest bid + bid increment.");
         } else {
@@ -116,8 +119,8 @@ contract Auction {
         highestBidder = _bidder;
         // msg.value is the bid value in wei
         highestBid = msg.value;
-        bidders.push(highestBidder);
 
+        // prevent escrow bidding
         if (trackAllBids[_bidder] > 0) {
             payable(_bidder).transfer(trackAllBids[_bidder]);
             trackAllBids[_bidder] = 0;
@@ -130,8 +133,9 @@ contract Auction {
         return true;
     }
 
-    function withdrawBid(address _bidder) public is_expired returns (bool) {
-        require(trackAllBids[_bidder] > 0, "You've already withdrawn from this auction.");
+    function withdrawBid(address _bidder) public is_expired only_bidder(_bidder) returns (bool) {
+        require(trackAllBids[_bidder] > 0, "You've already withdrawn from this Auction.");
+      
         uint256 amount;
 
         // Find bid placed by address of bidder (hash map)
@@ -159,7 +163,6 @@ contract Auction {
         trackAllBids[highestBidder] = 0;
 
         payable(_owner).transfer(winningAmount);
-        emit claimEvent(_owner, winningAmount);
 
         return true;
     }
@@ -186,6 +189,5 @@ contract Auction {
 
     event bidEvent(address indexed highestBidder, uint256 highestBid);
     event withdrawalEvent(address withdrawer, uint256 amount);
-    event claimEvent(address owner, uint256 highestBid);
     event statusEvent(string message, uint256 time);
 }

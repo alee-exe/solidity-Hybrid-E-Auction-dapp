@@ -24,7 +24,7 @@ function enumStatus(enum_index) {
 function checkAuctionType(isPrivate) {
     let type = null;
 
-    if (isPrivate === "true") {
+    if (isPrivate) {
         type = "PRIVATE (Sealed-bid)";
     } else {
         type = "PUBLIC (Open-bid)";

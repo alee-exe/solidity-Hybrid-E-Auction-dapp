@@ -112,5 +112,4 @@ contract AuctionListing {
     function getTotalNumberOfBids(uint _i) public view returns (uint256) {
         return listedAuctions[_i].numberOfTotalBids();
     }
-
 }

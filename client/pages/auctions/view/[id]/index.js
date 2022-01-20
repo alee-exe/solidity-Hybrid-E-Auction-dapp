@@ -6,6 +6,7 @@ import AuctionListing from '@/build/contracts/AuctionListing.json';
 import Auction from '@/build/contracts/Auction.json';
 import Alert from '@/components/Alert.js';
 import Tooltip from '@/components/Tooltip.js';
+import LoadingImage from '@/components/images/loading-bar.gif';
 import { convertTimestampToDate, enumStatus, checkAuctionType } from '@/components/AuctionUtils.js';
 import axios from "axios";
 
@@ -23,7 +24,7 @@ export default withRouter(class Home extends Component {
         startingBid: null,
         bidIncrement: null,
         sellingPrice: null,
-        auctionType: null,
+        auctionIsPrivate: null,
         itemName: null,
         itemCondition: null,
         itemDescription: null,
@@ -73,7 +74,7 @@ export default withRouter(class Home extends Component {
             const auctionStatus = await contract.methods.getAuctionStatus(id).call();
             const auctionedItem = await contract.methods.getAuctionedItem(id).call();
             const auctionTimer = (endBlockTimeStamp - Math.floor(Date.now() / 1000));
-            const auctionType = await contract.methods.getIsPrivate(id).call();
+            const auctionIsPrivate = await contract.methods.getIsPrivate(id).call();
 
             const itemName = auctionedItem[0];
             const itemDescription = auctionedItem[1];
@@ -84,7 +85,7 @@ export default withRouter(class Home extends Component {
             const userTotalBidsConvert = web3.utils.fromWei(userTotalBids, 'ether');
             const totalNumberOfBids = await contract.methods.getTotalNumberOfBids(id).call();
 
-            this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userTotalBids: userTotalBidsConvert, totalNumberOfBids, owner, startingBid, bidIncrement, sellingPrice, auctionType, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid: highestBidConvert, auctionStatus, auctionTimer, auctionId: id });
+            this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userTotalBids: userTotalBidsConvert, totalNumberOfBids, owner, startingBid, bidIncrement, sellingPrice, auctionIsPrivate, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid: highestBidConvert, auctionStatus, auctionTimer, auctionId: id });
 
             this.intervalAuctionTimer = setInterval(() => this.setState({ auctionTimer: endBlockTimeStamp - Math.floor(Date.now() / 1000) }), 1000);
 
@@ -103,8 +104,6 @@ export default withRouter(class Home extends Component {
                 this.updateUserTotalBids();
                 this.updateNumberOfTotalBids();
             }, 1000);
-
-            this.fetchETHtoFiatCurrency();
 
         } catch (error) {
             console.log(error);
@@ -195,7 +194,7 @@ export default withRouter(class Home extends Component {
     }
 
     onLogBidEvent = async () => {
-        const { auctionContract, web3Provider } = this.state;
+        const { auctionContract, web3Provider, auctionIsPrivate } = this.state;
         console.log("Registered user bid event.");
 
         await auctionContract.events.bidEvent({ fromBlock: 'latest' })
@@ -208,7 +207,14 @@ export default withRouter(class Home extends Component {
                 const bidAmount = web3Provider.utils.fromWei(event.returnValues[1], 'ether');
                 const transactionHash = event['transactionHash'];
                 // const auctionAddress = event['address'];
-                const bidEventLog = "<span class='font-bold'>New Bid from User Address: </span>" + userAddress + " at " + bidAmount + " ETH. <br> <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + " on " + convertTimestampToDate(Math.floor(Date.now() / 1000)) + ".";
+                let bidEventLog = null;
+
+                if (this.state.auctionIsPrivate) {
+                    // If private hide bidding amount
+                    bidEventLog = "<span class='font-bold'>New Bid from User Address: </span>" + userAddress + ". <br> <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + " on " + convertTimestampToDate(Math.floor(Date.now() / 1000)) + ".";
+                } else {
+                    bidEventLog = "<span class='font-bold'>New Bid from User Address: </span>" + userAddress + " at " + bidAmount + " ETH. <br> <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + " on " + convertTimestampToDate(Math.floor(Date.now() / 1000)) + ".";
+                }
 
                 // Prevent duplicate logs
                 if (this.state.bidEventLog !== bidEventLog) {
@@ -307,6 +313,25 @@ export default withRouter(class Home extends Component {
             });
     }
 
+    onClickClaimBid = async (event) => {
+        event.preventDefault();
+        const { contract, userAccount, auctionId } = this.state;
+
+        await contract.methods.claimBid(auctionId).send({ from: userAccount }).then(async (response) => {
+            if (response) {
+                const bidAlert = <Alert type="success">Successfully claimed the winning bid!</Alert>;
+                this.setState({ bidAlert });
+                this.onLogCancelEvent();
+            };
+        }).catch((error) => {
+            if (error) {
+                const bidAlert = <Alert type="danger">Error: Could not claim the winning bid. See console for more details.</Alert>;
+                this.setState({ bidAlert });
+            };
+        });
+
+    }
+
     // Fetches the price of 1 ETH to Fiat currencies
     fetchETHtoFiatCurrency = async () => {
         const { data } = await axios.get(`https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD,EUR,GBP`);
@@ -327,12 +352,14 @@ export default withRouter(class Home extends Component {
 
 
     render() {
-        return (
-            <div>
+
+        // If Auction is Private view - hide specific bidding information
+        if (this.state.auctionIsPrivate === true) {
+            return (<div>
                 {this.state.bidAlert}
                 <div className="flex mt-4 card border">
                     <div className="row-span-3 pl-5 pt-5">
-                        {this.state.ipfsImageHash === null ? (<p>Loading image...</p>) : (<Image src={`https://ipfs.infura.io/ipfs/${this.state.ipfsImageHash}`} width={670} height={440} priority={true}></Image>)}
+                        {this.state.ipfsImageHash === null ? (<Image src={LoadingImage} width={670} height={440} priority={true}></Image>) : (<Image src={`https://ipfs.infura.io/ipfs/${this.state.ipfsImageHash}`} width={670} height={440} priority={true}></Image>)}
                     </div>
 
                     <div className="row-span-2 col-span-2 pt-5 ml-10 leading-4">
@@ -348,12 +375,106 @@ export default withRouter(class Home extends Component {
                         <p className="pb-3"><span className="font-bold">Auction End Date: </span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {this.state.auctionStatus == 0 ? ("CANCELLED") : (convertTimestampToDate(this.state.auctionTimer, "time"))})</p>
 
                         <p className="pb-3"><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>
-                        <p className="pb-3"><span className="font-bold">Auction Type: </span>{checkAuctionType(this.state.auctionType)}</p>
+                        <p className="pb-3"><span className="font-bold">Auction Type: </span>{checkAuctionType(this.state.auctionIsPrivate)}</p>
 
                         {this.state.startingBid == 0 ? null : (<p className="pb-3"><span className="font-bold">Starting Bid: </span>{this.state.startingBid} ETH</p>)}
                         {this.state.bidIncrement == 0 ? null : (<p className="pb-3"><span className="font-bold">Bid Increment: </span>{this.state.bidIncrement} ETH</p>)}
-                        {this.state.sellingPrice == 0 ? null : ( <p className="pb-3"><span className="font-bold">Selling Price: </span>{this.state.sellingPrice} ETH</p>)}
-    
+                        {this.state.sellingPrice == 0 ? null : (<p className="pb-3"><span className="font-bold">Selling Price: </span>{this.state.sellingPrice} ETH</p>)}
+
+                        <p className="pb-3"><span className="font-bold">Created on: </span>{convertTimestampToDate(this.state.startBlockTimeStamp)}.</p>
+                    </div>
+                </div>
+
+                <div className="flex">
+                    <div className="mt-4 card border w-1/2 mr-4">
+                        <p className="mb-2 text-lg">Auction Bids</p>
+                        <hr className="pb-4 border-slate-400" />
+                        {/* <p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p>
+                        <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid} ETH</p> */}
+                        <p><span className="font-bold">Your Total Bids: </span>{this.state.userTotalBids} ETH</p>
+
+                        <p className="mt-2"><span className="font-bold">Total Number of Bids in this Auction: </span>{this.state.totalNumberOfBids}</p>
+                    </div>
+
+                    <div className="mt-4 flex card border w-1/2">
+                        <div className="w-1/2">
+                            <p className="mb-4">Enter your Bid Value (Converts from Wei to ETH): </p>
+                            <form onSubmit={this.onClickPlaceBid} className="flex">
+                                {this.state.bidIncrement == 0 ? (<input type="number" min="0" step="any" placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />) : (<input type="number" min="0" step={this.state.bidIncrement} placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />)}
+                                <button type="submit" id="bid" className="font-bold bg-blue-500 text-white rounded p-4 shadow-lg">
+                                    Place Bid
+                                </button>
+                            </form>
+
+                            <div className="mt-3">
+                                {this.state.bidValue === null ? (<p className="italic">Enter bid value to convert to Fiat Currency...</p>) : (<div className="italic flex"><p className="mr-2">This is equivalent to... {this.state.ETHtoFiatConversion} {this.state.ETHtoFiatCurrency}</p> <Tooltip header="ETH to Fiat Conversion" message="This price conversion is done using the latest market price for ETH from https://www.cryptocompare.com/." ></Tooltip></div>)}
+                            </div>
+                        </div>
+
+                        <select id="fiat" className="bg-emerald-600 rounded-r-lg text-white shadow-lg font-bold" onChange={this.handleFiatCurrency}>
+                            <option value="GBP" selected="selected">GBP</option>
+                            <option value="EUR">EUR</option>
+                            <option value="USD">USD</option>
+                        </select>
+
+                        <div className="w-1/2 pl-10">
+                            <div className="mb-4 flex"><p className="mr-1">Withdraw from Auction: </p><Tooltip header="Withdrawal of Bid" message="You can only withdraw once the Auction has expired (Ended or Cancelled status)." ></Tooltip></div>
+                            {this.state.auctionStatus != 1 ? <button className="font-bold bg-slate-500 text-white rounded p-4 shadow-lg w-4/5" id="withdraw" onClick={this.onClickWithdraw} type="button">Withdraw
+                                bids</button> : <button className="font-bold bg-slate-500 text-white rounded p-4 shadow-lg w-4/5 opacity-50 cursor-not-allowed" disabled id="withdraw" onClick={this.onClickWithdraw} type="button">Withdraw
+                                    bids</button>}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex">
+                    <div id="auctionEventLogs" className="mt-4 card border w-8/12 mr-4">
+                        <p className="mb-2 text-lg">Auction Event Logs</p>
+                        <hr className="pb-4 border-slate-400" />
+                        <p id="singleAuctionEventLog"></p>
+                    </div>
+
+                    <div id="auctionOwnerOperations" className="mt-4 card border w-4/12">
+                        <div className="mb-2 text-lg flex"><p className="mr-1">Auction Owner Operations</p><Tooltip header="Auction Owner Operations" message="Only the Contract Owner of this Auction can perform these operations." ></Tooltip></div>
+                        <hr className="pb-4 border-slate-400" />
+                        <div className="flex">
+                            {this.state.userAccount === this.state.owner ? <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg w-1/2 pb-4 mr-4" id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button> :
+                                <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg opacity-50 cursor-not-allowed w-1/2 pb-4 mr-4" disabled id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button>}
+                            {this.state.userAccount === this.state.owner ? <button className="font-bold bg-green-700 text-white rounded p-4 shadow-lg w-1/2" id="claim" onClick={this.onClickClaimBid} type="button">Claim Winnings</button> :
+                                <button className="font-bold bg-green-700 text-white rounded p-4 shadow-lg opacity-50 cursor-not-allowed w-1/2" disabled id="claim" onClick={this.onClickClaimBid} type="button">Claim Winnings</button>}
+                        </div>
+                    </div>
+                </div>
+            </div>)
+        }
+
+        // Else render Public view
+        return (
+            <div>
+                {this.state.bidAlert}
+                <div className="flex mt-4 card border">
+                    <div className="row-span-3 pl-5 pt-5">
+                        {this.state.ipfsImageHash === null ? (<Image src={LoadingImage} width={670} height={440} priority={true}></Image>) : (<Image src={`https://ipfs.infura.io/ipfs/${this.state.ipfsImageHash}`} width={670} height={440} priority={true}></Image>)}
+                    </div>
+
+                    <div className="row-span-2 col-span-2 pt-5 ml-10 leading-4">
+                        <h1 className="font-bold text-3xl pb-3">{this.state.itemName}</h1>
+                        <hr className="pb-4 border-slate-400" />
+                        <p className="font-bold italic text-lg">The owner has described/noted this item as:</p>
+                        <p className="text-lg pb-3">"{this.state.itemDescription}"</p>
+                        <p className="font-bold italic text-lg">The item's condition is as follows:</p>
+                        <p className="text-lg pb-3">"{this.state.itemCondition}"</p>
+
+                        <p className="pb-3"><span className="font-bold"> Auction Owner (Address): </span>{this.state.owner}</p>
+                        <p className="pb-3"><span className="font-bold">Auction Contract (Address): </span>{this.state.auctionAddress}</p>
+                        <p className="pb-3"><span className="font-bold">Auction End Date: </span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {this.state.auctionStatus == 0 ? ("CANCELLED") : (convertTimestampToDate(this.state.auctionTimer, "time"))})</p>
+
+                        <p className="pb-3"><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>
+                        <p className="pb-3"><span className="font-bold">Auction Type: </span>{checkAuctionType(this.state.auctionIsPrivate)}</p>
+
+                        {this.state.startingBid == 0 ? null : (<p className="pb-3"><span className="font-bold">Starting Bid: </span>{this.state.startingBid} ETH</p>)}
+                        {this.state.bidIncrement == 0 ? null : (<p className="pb-3"><span className="font-bold">Bid Increment: </span>{this.state.bidIncrement} ETH</p>)}
+                        {this.state.sellingPrice == 0 ? null : (<p className="pb-3"><span className="font-bold">Selling Price: </span>{this.state.sellingPrice} ETH</p>)}
+
                         <p className="pb-3"><span className="font-bold">Created on: </span>{convertTimestampToDate(this.state.startBlockTimeStamp)}.</p>
                     </div>
                 </div>
@@ -400,17 +521,21 @@ export default withRouter(class Home extends Component {
                 </div>
 
                 <div className="flex">
-                    <div id="auctionEventLogs" className="mt-4 card border w-4/5 mr-4">
+                    <div id="auctionEventLogs" className="mt-4 card border w-8/12 mr-4">
                         <p className="mb-2 text-lg">Auction Event Logs</p>
                         <hr className="pb-4 border-slate-400" />
                         <p id="singleAuctionEventLog"></p>
                     </div>
 
-                    <div id="auctionOwnerOperations" className="mt-4 card border w-1/5">
+                    <div id="auctionOwnerOperations" className="mt-4 card border w-4/12">
                         <div className="mb-2 text-lg flex"><p className="mr-1">Auction Owner Operations</p><Tooltip header="Auction Owner Operations" message="Only the Contract Owner of this Auction can perform these operations." ></Tooltip></div>
                         <hr className="pb-4 border-slate-400" />
-                        {this.state.userAccount === this.state.owner ? <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg w-4/5" id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button> :
-                            <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg w-4/5 opacity-50 cursor-not-allowed" disabled id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button>}
+                        <div className="flex">
+                            {this.state.userAccount === this.state.owner ? <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg w-1/2 pb-4 mr-4" id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button> :
+                                <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg opacity-50 cursor-not-allowed w-1/2 pb-4 mr-4" disabled id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button>}
+                            {this.state.userAccount === this.state.owner ? <button className="font-bold bg-green-700 text-white rounded p-4 shadow-lg w-1/2" id="claim" onClick={this.onClickClaimBid} type="button">Claim Winnings</button> :
+                                <button className="font-bold bg-green-700 text-white rounded p-4 shadow-lg opacity-50 cursor-not-allowed w-1/2" disabled id="claim" onClick={this.onClickClaimBid} type="button">Claim Winnings</button>}
+                        </div>
                     </div>
                 </div>
             </div>
