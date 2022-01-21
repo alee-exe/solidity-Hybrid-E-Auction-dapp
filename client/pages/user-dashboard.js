@@ -7,7 +7,8 @@ export default class UserDashboardPage extends Component {
     state = {
         web3Provider: null,
         userAccount: null,
-        userWalletBalance: null
+        userWalletBalance: null,
+        contract: null
     };
 
     componentDidMount = async () => {
@@ -21,7 +22,7 @@ export default class UserDashboardPage extends Component {
             const userWalletBalance = await web3.eth.getBalance(userAccount);
             const userWalletBalanceToETH = web3.utils.fromWei(userWalletBalance, 'ether');
 
-            this.setState({ web3Provider: web3, userAccount, userWalletBalance: userWalletBalanceToETH });
+            this.setState({ web3Provider: web3, userAccount, userWalletBalance: userWalletBalanceToETH, contract });
         } catch (error) {
             console.log(error);
         };
@@ -29,6 +30,14 @@ export default class UserDashboardPage extends Component {
 
 
     render() {
+        // if (!this.state.contract) {
+        //     return (
+        //         <div className="border pl-20 pr-20 pt-10 pb-20">
+        //             <h1 className="text-lg">Login to MetaMask to see your Account Details.</h1>
+        //         </div>
+        //     )
+        // }
+
         return (
             <div className="border pl-20 pr-20 pt-10 pb-20">
                 <h1 className="text-2xl font-bold pb-4"> User Dashboard </h1>

@@ -93,8 +93,8 @@ contract AuctionListing {
         return listedAuctions[_i].withdrawBid(msg.sender);
     }
 
-    function claimBid(uint _i) public payable returns (bool) {
-        return listedAuctions[_i].claimBid(msg.sender);
+    function claimWinningBid(uint _i) public payable returns (bool) {
+        return listedAuctions[_i].claimWinningBid(msg.sender);
     }
 
     function cancelAuction(uint _i) public returns (Auction.STATE) {
@@ -105,7 +105,7 @@ contract AuctionListing {
         return listedAuctions[_i].endAuction();
     }
 
-     function getUserTotalBids(uint _i, address _bidder) public view returns (uint256) {
+     function getUserCurrentBid(uint _i, address _bidder) public view returns (uint256) {
         return listedAuctions[_i].trackAllBids(_bidder);
     }
 

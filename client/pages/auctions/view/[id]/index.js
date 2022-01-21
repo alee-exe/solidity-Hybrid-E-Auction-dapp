@@ -16,7 +16,7 @@ export default withRouter(class Home extends Component {
     state = {
         web3Provider: null,
         userAccount: null,
-        userTotalBids: null,
+        userCurrentBid: null,
         contract: null,
         auctionContract: null,
         auctionAddress: null,
@@ -64,8 +64,7 @@ export default withRouter(class Home extends Component {
             const owner = await contract.methods.getOwner(id).call();
             const startBlockTimeStamp = await contract.methods.getStartBlockTimeStamp(id).call();
             const endBlockTimeStamp = await contract.methods.getEndBlockTimeStamp(id).call();
-            const highestBid = await contract.methods.getHighestBid(id).call();
-            const highestBidConvert = web3.utils.fromWei(highestBid, 'ether');
+            const highestBid = web3.utils.fromWei(await contract.methods.getHighestBid(id).call(), 'ether');
             const highestBidder = await contract.methods.getHighestBidder(id).call();
             const startingBid = web3.utils.fromWei(await contract.methods.getStartingBid(id).call(), 'ether');
             const bidIncrement = web3.utils.fromWei(await contract.methods.getBidIncrement(id).call(), 'ether');
@@ -81,11 +80,10 @@ export default withRouter(class Home extends Component {
             const itemCondition = auctionedItem[2];
             const ipfsImageHash = auctionedItem[3];
 
-            const userTotalBids = await contract.methods.getUserTotalBids(id, userAccount).call();
-            const userTotalBidsConvert = web3.utils.fromWei(userTotalBids, 'ether');
+            const userCurrentBid = web3.utils.fromWei(await contract.methods.getUserCurrentBid(id, userAccount).call(), 'ether');
             const totalNumberOfBids = await contract.methods.getTotalNumberOfBids(id).call();
 
-            this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userTotalBids: userTotalBidsConvert, totalNumberOfBids, owner, startingBid, bidIncrement, sellingPrice, auctionIsPrivate, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid: highestBidConvert, auctionStatus, auctionTimer, auctionId: id });
+            this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userCurrentBid, totalNumberOfBids, owner, startingBid, bidIncrement, sellingPrice, auctionIsPrivate, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid, auctionStatus, auctionTimer, auctionId: id });
 
             this.intervalAuctionTimer = setInterval(() => this.setState({ auctionTimer: endBlockTimeStamp - Math.floor(Date.now() / 1000) }), 1000);
 
@@ -100,8 +98,8 @@ export default withRouter(class Home extends Component {
                 this.updateHighestBid();
             }, 3000);
 
-            this.intervalUserTotalBids = setInterval(() => {
-                this.updateUserTotalBids();
+            this.intervalUserCurrentBid = setInterval(() => {
+                this.updateUserCurrentBid();
                 this.updateNumberOfTotalBids();
             }, 1000);
 
@@ -115,7 +113,7 @@ export default withRouter(class Home extends Component {
         clearInterval(this.intervalAuctionTimer);
         clearInterval(this.intervalAuctionStatus);
         clearInterval(this.intervalHighestBidder);
-        clearInterval(this.intervalUserTotalBids);
+        clearInterval(this.intervalUserCurrentBid);
     }
 
     updateAuctionStatus = async () => {
@@ -147,21 +145,19 @@ export default withRouter(class Home extends Component {
 
     updateHighestBid = async () => {
         const { contract, auctionId, web3Provider } = this.state;
-        const highestBid = await contract.methods.getHighestBid(auctionId).call();
-        const newHighestBidConvert = web3Provider.utils.fromWei(highestBid, 'ether');
+        const newHighestBid = web3Provider.utils.fromWei(await contract.methods.getHighestBid(auctionId).call(), 'ether');
 
-        if ((newHighestBidConvert !== this.state.highestBid)) {
-            this.setState({ highestBid: newHighestBidConvert });
+        if ((newHighestBid !== this.state.highestBid)) {
+            this.setState({ highestBid: newHighestBid });
         };
     }
 
-    updateUserTotalBids = async () => {
+    updateUserCurrentBid = async () => {
         const { contract, auctionId, userAccount, web3Provider } = this.state;
-        const userTotalBids = await contract.methods.getUserTotalBids(auctionId, userAccount).call();
-        const newUserTotalBidsConvert = web3Provider.utils.fromWei(userTotalBids, 'ether');
+        const newUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(auctionId, userAccount).call(), 'ether');
 
-        if ((newUserTotalBidsConvert !== this.state.userTotalBids)) {
-            this.setState({ userTotalBids: newUserTotalBidsConvert });
+        if ((newUserCurrentBid !== this.state.userCurrentBid)) {
+            this.setState({ userCurrentBid: newUserCurrentBid });
         };
     }
 
@@ -313,11 +309,11 @@ export default withRouter(class Home extends Component {
             });
     }
 
-    onClickClaimBid = async (event) => {
+    onClickClaimWinningBid = async (event) => {
         event.preventDefault();
         const { contract, userAccount, auctionId } = this.state;
 
-        await contract.methods.claimBid(auctionId).send({ from: userAccount }).then(async (response) => {
+        await contract.methods.claimWinningBid(auctionId).send({ from: userAccount }).then(async (response) => {
             if (response) {
                 const bidAlert = <Alert type="success">Successfully claimed the winning bid!</Alert>;
                 this.setState({ bidAlert });
@@ -391,14 +387,14 @@ export default withRouter(class Home extends Component {
                         <hr className="pb-4 border-slate-400" />
                         {/* <p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p>
                         <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid} ETH</p> */}
-                        <p><span className="font-bold">Your Total Bids: </span>{this.state.userTotalBids} ETH</p>
+                        <p><span className="font-bold">Your Current Bid: </span>{this.state.userCurrentBid} ETH</p>
 
                         <p className="mt-2"><span className="font-bold">Total Number of Bids in this Auction: </span>{this.state.totalNumberOfBids}</p>
                     </div>
 
                     <div className="mt-4 flex card border w-1/2">
                         <div className="w-1/2">
-                            <p className="mb-4">Enter your Bid Value (Converts from Wei to ETH): </p>
+                            <div className="mb-4 flex">Enter your Bid Value (Converts from Wei to ETH): <Tooltip header="Place Bid" message="Enter your bid value using the input below. Place and finalised your bid by clicking the blue button and accepting the MetaMask transaction. See your current bid value to market fiat currency using the green dropdown menu. NOTE: Bid values do not account for required gas fees." ></Tooltip></div>
                             <form onSubmit={this.onClickPlaceBid} className="flex">
                                 {this.state.bidIncrement == 0 ? (<input type="number" min="0" step="any" placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />) : (<input type="number" min="0" step={this.state.bidIncrement} placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />)}
                                 <button type="submit" id="bid" className="font-bold bg-blue-500 text-white rounded p-4 shadow-lg">
@@ -439,8 +435,8 @@ export default withRouter(class Home extends Component {
                         <div className="flex">
                             {this.state.userAccount === this.state.owner ? <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg w-1/2 pb-4 mr-4" id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button> :
                                 <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg opacity-50 cursor-not-allowed w-1/2 pb-4 mr-4" disabled id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button>}
-                            {this.state.userAccount === this.state.owner ? <button className="font-bold bg-green-700 text-white rounded p-4 shadow-lg w-1/2" id="claim" onClick={this.onClickClaimBid} type="button">Claim Winnings</button> :
-                                <button className="font-bold bg-green-700 text-white rounded p-4 shadow-lg opacity-50 cursor-not-allowed w-1/2" disabled id="claim" onClick={this.onClickClaimBid} type="button">Claim Winnings</button>}
+                            {this.state.userAccount === this.state.owner ? <button className="font-bold bg-green-700 text-white rounded p-4 shadow-lg w-1/2" id="claim" onClick={this.onClickClaimWinningBid} type="button">Claim Winnings</button> :
+                                <button className="font-bold bg-green-700 text-white rounded p-4 shadow-lg opacity-50 cursor-not-allowed w-1/2" disabled id="claim" onClick={this.onClickClaimWinningBid} type="button">Claim Winnings</button>}
                         </div>
                     </div>
                 </div>
@@ -485,14 +481,14 @@ export default withRouter(class Home extends Component {
                         <hr className="pb-4 border-slate-400" />
                         <p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p>
                         <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid} ETH</p>
-                        <p><span className="font-bold">Your Total Bids: </span>{this.state.userTotalBids} ETH</p>
+                        <p><span className="font-bold">Your Current Bid: </span>{this.state.userCurrentBid} ETH</p>
 
                         <p className="mt-2"><span className="font-bold">Total Number of Bids in this Auction: </span>{this.state.totalNumberOfBids}</p>
                     </div>
 
                     <div className="mt-4 flex card border w-1/2">
                         <div className="w-1/2">
-                            <p className="mb-4">Enter your Bid Value (Converts from Wei to ETH): </p>
+                            <div className="mb-4 flex">Enter your Bid Value (Converts from Wei to ETH): <Tooltip header="Place Bid" message="Enter your bid value using the input below. Place and finalised your bid by clicking the blue button and accepting the MetaMask transaction. See your current bid value to market fiat currency using the green dropdown menu. NOTE: Bid values do not account for required gas fees." ></Tooltip></div>
                             <form onSubmit={this.onClickPlaceBid} className="flex">
                                 {this.state.bidIncrement == 0 ? (<input type="number" min="0" step="any" placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />) : (<input type="number" min="0" step={this.state.bidIncrement} placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />)}
                                 <button type="submit" id="bid" className="font-bold bg-blue-500 text-white rounded p-4 shadow-lg">
@@ -533,8 +529,8 @@ export default withRouter(class Home extends Component {
                         <div className="flex">
                             {this.state.userAccount === this.state.owner ? <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg w-1/2 pb-4 mr-4" id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button> :
                                 <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg opacity-50 cursor-not-allowed w-1/2 pb-4 mr-4" disabled id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button>}
-                            {this.state.userAccount === this.state.owner ? <button className="font-bold bg-green-700 text-white rounded p-4 shadow-lg w-1/2" id="claim" onClick={this.onClickClaimBid} type="button">Claim Winnings</button> :
-                                <button className="font-bold bg-green-700 text-white rounded p-4 shadow-lg opacity-50 cursor-not-allowed w-1/2" disabled id="claim" onClick={this.onClickClaimBid} type="button">Claim Winnings</button>}
+                            {this.state.userAccount === this.state.owner ? <button className="font-bold bg-green-700 text-white rounded p-4 shadow-lg w-1/2" id="claim" onClick={this.onClickClaimWinningBid} type="button">Claim Winnings</button> :
+                                <button className="font-bold bg-green-700 text-white rounded p-4 shadow-lg opacity-50 cursor-not-allowed w-1/2" disabled id="claim" onClick={this.onClickClaimWinningBid} type="button">Claim Winnings</button>}
                         </div>
                     </div>
                 </div>

@@ -22,7 +22,7 @@ contract Auction {
     // Auction Type (Public or Private)
     bool public isPrivate;
     // Track number of total bids
-    uint256 public numberOfTotalBids = 0;
+    uint256 public numberOfTotalBids;
 
 
     // Auction states
@@ -72,7 +72,7 @@ contract Auction {
         auctionedItem.ipfsImageHash = _ipfsImageHash;
     }
 
-    // bids - maps all bidders with their total bids, hash map (KeyType => ValueType)
+    // maps all bidders with their current bids, hash map (KeyType => ValueType)
     // variables with the public modifier have automatic getters
     mapping(address => uint256) public trackAllBids;
 
@@ -105,20 +105,9 @@ contract Auction {
         only_bidder(_bidder)
         returns (bool)
     {
-        if (bidIncrement > 0 ) {
-            require(msg.value >= highestBid + bidIncrement, "Placed bid must be greater than highest bid + bid increment.");
-        } else {
-            require(msg.value > highestBid, "Placed bid must be greater than highest bid.");
-        }
-
         if (startingBid > 0 ) {
             require(msg.value >= startingBid, "Initial bid must be greater or equal to starting bid.");
         }
-        
-        numberOfTotalBids++;
-        highestBidder = _bidder;
-        // msg.value is the bid value in wei
-        highestBid = msg.value;
 
         // prevent escrow bidding
         if (trackAllBids[_bidder] > 0) {
@@ -126,20 +115,45 @@ contract Auction {
             trackAllBids[_bidder] = 0;
         }
 
-        trackAllBids[highestBidder] = trackAllBids[highestBidder] + msg.value;
+        // if Auction type is Private then change bid handling and requirements
+        if (isPrivate) {
+            if (bidIncrement > 0 ) {
+                require(msg.value >= trackAllBids[_bidder] + bidIncrement, "Placed bid must be greater than your current bid + bid increment.");
+            } else {
+                require(msg.value > trackAllBids[_bidder], "Placed bid must be greater than your current highest bid.");
+            }
 
+            // if two bidders have the same highest bid - select the bidder with the first highest bid
+            if (msg.value > trackAllBids[highestBidder]) {
+                highestBidder = _bidder;
+                highestBid = msg.value;
+            }
+
+            trackAllBids[_bidder] += msg.value;
+
+        } else {
+            if (bidIncrement > 0 ) {
+                require(msg.value >= highestBid + bidIncrement, "Placed bid must be greater than highest bid + bid increment.");
+            } else {
+                require(msg.value > highestBid, "Placed bid must be greater than highest bid.");
+            }
+
+            highestBidder = _bidder;
+            // msg.value is the bid value in wei
+            highestBid = msg.value;
+            trackAllBids[highestBidder] += msg.value;
+        }
+
+        numberOfTotalBids++;
         emit bidEvent(highestBidder, highestBid);
-
         return true;
     }
 
     function withdrawBid(address _bidder) public is_expired only_bidder(_bidder) returns (bool) {
         require(trackAllBids[_bidder] > 0, "You've already withdrawn from this Auction.");
       
-        uint256 amount;
-
         // Find bid placed by address of bidder (hash map)
-        amount = trackAllBids[_bidder];
+        uint256 amount = trackAllBids[_bidder];
         // Set current bid by withdrawer to 0 (update hash map)
         trackAllBids[_bidder] = 0;
         // Transfer back funds
@@ -150,20 +164,17 @@ contract Auction {
         return true;
     }
 
-    function claimBid(address _owner)
+    function claimWinningBid(address _owner)
         public
         only_owner(_owner)
         is_expired
         returns (bool)
     {
         require(trackAllBids[highestBidder] > 0, "Highest bidder must have a bid greater than 0 ETH to claim.");
-        uint256 winningAmount;
+        uint256 winningAmount = trackAllBids[highestBidder];
 
-        winningAmount = trackAllBids[highestBidder];
         trackAllBids[highestBidder] = 0;
-
         payable(_owner).transfer(winningAmount);
-
         return true;
     }
 
