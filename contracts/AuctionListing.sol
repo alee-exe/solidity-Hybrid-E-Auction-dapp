@@ -11,9 +11,9 @@ contract AuctionListing {
 
     function createAuction(
         uint256 _biddingTime,
+        uint256 _sellingPrice,
         uint256 _startingBid,
         uint256 _bidIncrement,
-        uint256 _sellingPrice,
         bool _isPrivate,
         string memory _name,
         string memory _condition,
@@ -23,9 +23,9 @@ contract AuctionListing {
         Auction createdAuction = new Auction(
             msg.sender,
             _biddingTime,
+            _sellingPrice,
             _startingBid,
             _bidIncrement,
-            _sellingPrice,
             _isPrivate,
             _name,
             _condition,
@@ -97,6 +97,10 @@ contract AuctionListing {
         return listedAuctions[_i].claimWinningBid(msg.sender);
     }
 
+     function buyAuction(uint _i) public payable returns (Auction.STATE) {
+        return listedAuctions[_i].buyAuction{value:msg.value}(msg.sender);
+    }
+
     function cancelAuction(uint _i) public returns (Auction.STATE) {
         return listedAuctions[_i].cancelAuction(msg.sender);
     }
@@ -111,5 +115,9 @@ contract AuctionListing {
 
     function getTotalNumberOfBids(uint _i) public view returns (uint256) {
         return listedAuctions[_i].numberOfTotalBids();
+    }
+
+    function getAuctionPurchaser(uint _i) public view returns (address) {
+        return listedAuctions[_i].purchaser();
     }
 }

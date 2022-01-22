@@ -23,13 +23,15 @@ contract Auction {
     bool public isPrivate;
     // Track number of total bids
     uint256 public numberOfTotalBids;
-
+    //If Auction Item is purchased
+    address public purchaser;
 
     // Auction states
     enum STATE {
         CANCELLED,
         ONGOING,
-        ENDED
+        ENDED,
+        BOUGHT
     }
 
     STATE public auctionStatus;
@@ -48,9 +50,9 @@ contract Auction {
     constructor(
         address _owner,
         uint256 _biddingTime,
+        uint256 _sellingPrice,
         uint256 _startingBid,
         uint256 _bidIncrement,
-        uint256 _sellingPrice,
         bool _isPrivate,
         string memory _name,
         string memory _condition,
@@ -62,9 +64,9 @@ contract Auction {
         // time is in hours
         endBlockTimeStamp = startBlockTimeStamp + (_biddingTime * 1 hours);
         auctionStatus = STATE.ONGOING;
+        sellingPrice = _sellingPrice;
         startingBid = _startingBid;
         bidIncrement = _bidIncrement;
-        sellingPrice = _sellingPrice;
         isPrivate = _isPrivate;
         auctionedItem.name = _name;
         auctionedItem.condition = _condition;
@@ -76,9 +78,8 @@ contract Auction {
     // variables with the public modifier have automatic getters
     mapping(address => uint256) public trackAllBids;
 
-    // makes the contract ownable - giving contract owner specific priviledges
+      // require modifiers will refund the remaining gas to the caller if incorrectly invoked
     modifier only_owner(address _user) {
-        // require will refund the remaining gas to the caller
         require(_user == owner, "Only Auction owner is allowed to perform this operation.");
         _;
     }
@@ -152,15 +153,9 @@ contract Auction {
     function withdrawBid(address _bidder) public is_expired only_bidder(_bidder) returns (bool) {
         require(trackAllBids[_bidder] > 0, "You've already withdrawn from this Auction.");
       
-        // Find bid placed by address of bidder (hash map)
         uint256 amount = trackAllBids[_bidder];
-        // Set current bid by withdrawer to 0 (update hash map)
         trackAllBids[_bidder] = 0;
-        // Transfer back funds
         payable(_bidder).transfer(amount);
-        // Trigger event
-        emit withdrawalEvent(_bidder, amount);
-
         return true;
     }
 
@@ -170,7 +165,7 @@ contract Auction {
         is_expired
         returns (bool)
     {
-        require(trackAllBids[highestBidder] > 0, "Highest bidder must have a bid greater than 0 ETH to claim.");
+        require(trackAllBids[highestBidder] > 0, "Highest bidder must have placed a bid greater than 0 ETH to claim.");
         uint256 winningAmount = trackAllBids[highestBidder];
 
         trackAllBids[highestBidder] = 0;
@@ -184,21 +179,21 @@ contract Auction {
         is_ongoing
         returns (STATE)
     {
-        require(auctionStatus != STATE.ENDED, "Cannot cancel an Auction that has ended.");
         auctionStatus = STATE.CANCELLED;
-        emit statusEvent("Auction state is cancelled.", block.timestamp);
-
         return auctionStatus;
     }
 
     function endAuction() public is_ongoing returns (STATE) {
         auctionStatus = STATE.ENDED;
-        emit statusEvent("Auction state is ended.", block.timestamp);
+        return auctionStatus;
+    }
 
+    function buyAuction(address _bidder) public payable is_ongoing only_bidder(_bidder) returns (Auction.STATE) {
+        auctionStatus = STATE.BOUGHT;
+        purchaser = _bidder;
+        payable(owner).transfer(msg.value);
         return auctionStatus;
     }
 
     event bidEvent(address indexed highestBidder, uint256 highestBid);
-    event withdrawalEvent(address withdrawer, uint256 amount);
-    event statusEvent(string message, uint256 time);
 }

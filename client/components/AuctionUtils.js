@@ -17,7 +17,7 @@ function convertTimestampToDate(timestamp, mode) {
 };
 
 function enumStatus(enum_index) {
-    const status = ["CANCELLED", "ONGOING", "ENDED"];
+    const status = ["CANCELLED", "ONGOING", "ENDED", "BOUGHT"];
     return (status[enum_index]);
 };
 

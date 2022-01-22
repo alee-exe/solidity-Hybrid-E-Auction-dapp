@@ -1,7 +1,6 @@
 import { Component } from 'react';
 import Image from 'next/image';
 import { convertTimestampToDate, enumStatus} from './AuctionUtils.js';
-import LoadingImage from '@/components/images/loading-bar.gif';
 
 // Template for each auction in the auction listing
 export default class AuctionPreviewComponent extends Component {

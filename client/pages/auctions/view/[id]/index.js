@@ -6,7 +6,7 @@ import AuctionListing from '@/build/contracts/AuctionListing.json';
 import Auction from '@/build/contracts/Auction.json';
 import Alert from '@/components/Alert.js';
 import Tooltip from '@/components/Tooltip.js';
-import LoadingImage from '@/components/images/loading-bar.gif';
+import LoadingImage from '@/components/images/loading-cycle.gif';
 import { convertTimestampToDate, enumStatus, checkAuctionType } from '@/components/AuctionUtils.js';
 import axios from "axios";
 
@@ -74,6 +74,7 @@ export default withRouter(class Home extends Component {
             const auctionedItem = await contract.methods.getAuctionedItem(id).call();
             const auctionTimer = (endBlockTimeStamp - Math.floor(Date.now() / 1000));
             const auctionIsPrivate = await contract.methods.getIsPrivate(id).call();
+            const auctionPurchaser = await contract.methods.getAuctionPurchaser(id).call();
 
             const itemName = auctionedItem[0];
             const itemDescription = auctionedItem[1];
@@ -83,7 +84,7 @@ export default withRouter(class Home extends Component {
             const userCurrentBid = web3.utils.fromWei(await contract.methods.getUserCurrentBid(id, userAccount).call(), 'ether');
             const totalNumberOfBids = await contract.methods.getTotalNumberOfBids(id).call();
 
-            this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userCurrentBid, totalNumberOfBids, owner, startingBid, bidIncrement, sellingPrice, auctionIsPrivate, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid, auctionStatus, auctionTimer, auctionId: id });
+            this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userCurrentBid, totalNumberOfBids, owner, startingBid, bidIncrement, sellingPrice, auctionIsPrivate, auctionPurchaser, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid, auctionStatus, auctionTimer, auctionId: id });
 
             this.intervalAuctionTimer = setInterval(() => this.setState({ auctionTimer: endBlockTimeStamp - Math.floor(Date.now() / 1000) }), 1000);
 
@@ -127,10 +128,11 @@ export default withRouter(class Home extends Component {
             this.setState({ auctionStatus: auctionStatusEnded });
         };
 
-        // Check if auction has been cancelled or ended
+        // Check if auction has been cancelled, ended, or bought
         const auctionStatusCheck = await contract.methods.getAuctionStatus(auctionId).call();
         if (auctionStatusCheck != this.state.auctionStatus) {
             this.setState({ auctionStatus: auctionStatusCheck });
+            this.updateAuctionPurchaser();
         };
     }
 
@@ -167,6 +169,15 @@ export default withRouter(class Home extends Component {
 
         if ((newTotalNumberOfBids !== this.state.totalNumberOfBids)) {
             this.setState({ totalNumberOfBids: newTotalNumberOfBids });
+        };
+    }
+
+    updateAuctionPurchaser = async () => {
+        const { contract, auctionId } = this.state;
+        const newAuctionPurchaser = await contract.methods.getAuctionPurchaser(auctionId).call();
+
+        if ((newAuctionPurchaser !== this.state.auctionPurchaser)) {
+            this.setState({ auctionPurchaser: newAuctionPurchaser });
         };
     }
 
@@ -241,7 +252,6 @@ export default withRouter(class Home extends Component {
             if (response) {
                 const bidAlert = <Alert type="success">Successfully withdrawn!</Alert>;
                 this.setState({ bidAlert });
-                this.onLogWithdrawEvent();
             };
         }).catch((error) => {
             if (error) {
@@ -249,26 +259,6 @@ export default withRouter(class Home extends Component {
                 this.setState({ bidAlert });
             };
         });
-    }
-
-    onLogWithdrawEvent = async () => {
-        const { auctionContract } = this.state;
-        console.log("Registered user withdraw event.");
-
-        await auctionContract.events.withdrawalEvent({ fromBlock: 'latest' })
-            .on("error", (error) => {
-                console.log(error);
-            })
-            .on("data", async (event) => {
-                console.log("Creating user withdraw event message.");
-                console.log(event);
-
-                const userAddress = event.returnValues[0];
-                const transactionHash = event['transactionHash'];
-                const withdrawEventLog = "<span class='font-bold'>User: </span>" + userAddress + " has withdrawn from the Auction. <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + ".";
-
-                document.getElementById("singleAuctionEventLog").innerHTML = withdrawEventLog;
-            });
     }
 
     onClickCancel = async (event) => {
@@ -279,7 +269,6 @@ export default withRouter(class Home extends Component {
             if (response) {
                 const bidAlert = <Alert type="success">Successfully cancelled this Auction.</Alert>;
                 this.setState({ bidAlert });
-                this.onLogCancelEvent();
             };
         }).catch((error) => {
             if (error) {
@@ -287,26 +276,6 @@ export default withRouter(class Home extends Component {
                 this.setState({ bidAlert });
             };
         });
-    }
-
-    onLogCancelEvent = async () => {
-        const { auctionContract } = this.state;
-        console.log("Registered owner cancel event.");
-
-        await auctionContract.events.statusEvent({ fromBlock: 'latest' })
-            .on("error", (error) => {
-                console.log(error);
-            })
-            .on("data", async (event) => {
-                console.log("Creating owner event cancel message.");
-                console.log(event);
-
-                const userAddress = event.returnValues[0];
-                const transactionHash = event['transactionHash'];
-                const cancelEventLog = "<span class='font-bold'>Owner: </span>" + userAddress + " has cancelled the Auction. <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + ".";
-
-                document.getElementById("singleAuctionEventLog").innerHTML = cancelEventLog;
-            });
     }
 
     onClickClaimWinningBid = async (event) => {
@@ -317,7 +286,6 @@ export default withRouter(class Home extends Component {
             if (response) {
                 const bidAlert = <Alert type="success">Successfully claimed the winning bid!</Alert>;
                 this.setState({ bidAlert });
-                this.onLogCancelEvent();
             };
         }).catch((error) => {
             if (error) {
@@ -328,10 +296,27 @@ export default withRouter(class Home extends Component {
 
     }
 
+    onClickBuyAuction = async (event) => {
+        event.preventDefault();
+        const { contract, userAccount, auctionId, web3Provider, sellingPrice } = this.state;
+
+        await contract.methods.buyAuction(auctionId).send({ from: userAccount, value: web3Provider.utils.toWei(sellingPrice, 'ether'), gas: 200000 }).then(async(response) => {
+            if (response) {
+                const bidAlert = <Alert type="success">Successfully purchased Auction!</Alert>;
+                this.setState({ bidAlert });
+            };
+        }).catch((error) => {
+            if (error) {
+                const bidAlert = <Alert type="danger">Error: Could not purchase Auction. See console for more details.</Alert>;
+                this.setState({ bidAlert });
+            };
+        });
+    }
+
     // Fetches the price of 1 ETH to Fiat currencies
     fetchETHtoFiatCurrency = async () => {
         const { data } = await axios.get(`https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD,EUR,GBP`);
-        const { ETHtoFiatCurrency, bidValue, web3Provider } = this.state;
+        const { ETHtoFiatCurrency, bidValue } = this.state;
 
         if (bidValue === null) {
             bidValue = 0;
@@ -363,9 +348,9 @@ export default withRouter(class Home extends Component {
                     <p className="font-bold italic text-lg">The item's condition is as follows:</p>
                     <p className="text-lg pb-3">{this.state.itemCondition === null ? (<span>&nbsp;</span>) : (<span>&quot;{this.state.itemCondition}&quot;</span>)}</p>
 
-                    <p className="pb-3"><span className="font-bold"> Auction Owner (Address): </span>{this.state.owner}</p>
+                    <p className="pb-3"><span className="font-bold">Auction Owner (Address): </span>{this.state.owner}</p>
                     <p className="pb-3"><span className="font-bold">Auction Contract (Address): </span>{this.state.auctionAddress}</p>
-                    <p className="pb-3"><span className="font-bold">Auction End Date: </span>{this.state.endBlockTimeStamp === null && this.state.auctionStatus === null ? null : (<span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {this.state.auctionStatus != 1 ? (enumStatus(this.state.auctionStatus)): (convertTimestampToDate(this.state.auctionTimer, "time"))})</span>)}</p>
+                    <p className="pb-3"><span className="font-bold">Auction End Date: </span>{this.state.endBlockTimeStamp === null || this.state.auctionStatus === null ? null : (<span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {this.state.auctionStatus != 1 ? (enumStatus(this.state.auctionStatus)): (convertTimestampToDate(this.state.auctionTimer, "time"))})</span>)}</p>
 
                     <p className="pb-3"><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>
                     <p className="pb-3"><span className="font-bold">Auction Type: </span>{this.state.auctionIsPrivate === null ? null : (checkAuctionType(this.state.auctionIsPrivate))}</p>
@@ -375,6 +360,9 @@ export default withRouter(class Home extends Component {
                     {this.state.sellingPrice === null ? null : (this.state.sellingPrice == 0 ? null : (<p className="pb-3"><span className="font-bold">Selling Price: </span>{this.state.sellingPrice} ETH</p>))}
 
                     <p className="pb-3"><span className="font-bold">Created on: </span>{this.state.startBlockTimeStamp === null ? null : (<span>{convertTimestampToDate(this.state.startBlockTimeStamp)}&#46;</span>)}</p>
+
+                    {this.state.sellingPrice === null || this.state.auctionStatus === null ? null : (this.state.sellingPrice > 0 && this.state.auctionStatus == 1 ? (<button className="font-bold bg-blue-500 text-white rounded p-4 shadow-lg w-2/5" id="purchase" onClick={this.onClickBuyAuction} type="button">Purchase Auction</button>) : null)}
+                    {this.state.auctionPurchaser === null ? null : (this.state.auctionPurchaser === "0x0000000000000000000000000000000000000000" ? null : (<p className="pb-3"><span className="font-bold">Purchased by: </span>{this.state.auctionPurchaser}</p>))}
                 </div>
             </div>
 
