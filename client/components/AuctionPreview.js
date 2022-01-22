@@ -1,6 +1,7 @@
 import { Component } from 'react';
 import Image from 'next/image';
 import { convertTimestampToDate, enumStatus} from './AuctionUtils.js';
+import LoadingImage from '@/components/images/loading-bar.gif';
 
 // Template for each auction in the auction listing
 export default class AuctionPreviewComponent extends Component {
@@ -63,10 +64,10 @@ export default class AuctionPreviewComponent extends Component {
 
                 <div className="row-span-2 col-span-2 pt-5 pr-2">
                     <p><span className="font-bold">Auction Owner (Address): </span>{this.state.owner}</p>
-                    <p><span className="font-bold">Start Date: </span>{convertTimestampToDate(this.state.startBlockTimeStamp)}</p>
-                    <p><span className="font-bold">End Date: </span>{convertTimestampToDate(this.state.endBlockTimeStamp)}</p>
+                    <p><span className="font-bold">Start Date: </span>{this.state.startBlockTimeStamp === null ? null : (convertTimestampToDate(this.state.startBlockTimeStamp))}</p>
+                    <p><span className="font-bold">End Date: </span>{this.state.endBlockTimeStamp === null ? null : (convertTimestampToDate(this.state.endBlockTimeStamp))}</p>
                     <p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p>
-                    <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid} ETH</p>
+                    <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid === null ? null : (<span>{this.state.highestBid} ETH</span>)} </p>
                     <p><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>
 
                     <p><span className="font-bold">Item Name: </span>{this.state.itemName}</p>
