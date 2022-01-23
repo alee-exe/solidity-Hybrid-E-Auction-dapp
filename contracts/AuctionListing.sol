@@ -37,6 +37,30 @@ contract AuctionListing {
         emit AuctionCreated(msg.sender, listedAuctions.length);
     }
 
+    function placeBid(uint _i) public payable returns (bool) {
+        return listedAuctions[_i].placeBid{value:msg.value}(msg.sender);
+    }
+
+     function withdrawBid(uint _i) public returns (bool) {
+        return listedAuctions[_i].withdrawBid(msg.sender);
+    }
+
+     function buyAuction(uint _i) public payable returns (Auction.STATE) {
+        return listedAuctions[_i].buyAuction{value:msg.value}(msg.sender);
+    }
+
+    function claimWinningBid(uint _i) public payable returns (bool) {
+        return listedAuctions[_i].claimWinningBid(msg.sender);
+    }
+
+    function endAuction(uint _i) public returns (Auction.STATE) {
+        return listedAuctions[_i].endAuction();
+    }
+
+     function cancelAuction(uint _i) public returns (Auction.STATE) {
+        return listedAuctions[_i].cancelAuction(msg.sender);
+    }
+
     function getListedAuctions() public view returns (Auction[] memory) {
         return listedAuctions;
     }
@@ -83,30 +107,6 @@ contract AuctionListing {
 
     function getIsPrivate(uint _i) public view returns (bool) {
         return listedAuctions[_i].isPrivate();
-    }
-
-    function placeBid(uint _i) public payable returns (bool) {
-        return listedAuctions[_i].placeBid{value:msg.value}(msg.sender);
-    }
-
-     function withdrawBid(uint _i) public returns (bool) {
-        return listedAuctions[_i].withdrawBid(msg.sender);
-    }
-
-    function claimWinningBid(uint _i) public payable returns (bool) {
-        return listedAuctions[_i].claimWinningBid(msg.sender);
-    }
-
-     function buyAuction(uint _i) public payable returns (Auction.STATE) {
-        return listedAuctions[_i].buyAuction{value:msg.value}(msg.sender);
-    }
-
-    function cancelAuction(uint _i) public returns (Auction.STATE) {
-        return listedAuctions[_i].cancelAuction(msg.sender);
-    }
-
-    function endAuction(uint _i) public returns (Auction.STATE) {
-        return listedAuctions[_i].endAuction();
     }
 
      function getUserCurrentBid(uint _i, address _bidder) public view returns (uint256) {

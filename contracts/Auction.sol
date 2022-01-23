@@ -36,7 +36,7 @@ contract Auction {
 
     STATE public auctionStatus;
 
-    // structure is a collection of variables using different data types
+    // structure is a collection of variables that can contain different data types
     // we define an Item structure for the auctioned item
     struct Item {
         string name;
@@ -159,6 +159,13 @@ contract Auction {
         return true;
     }
 
+     function buyAuction(address _bidder) public payable is_ongoing only_bidder(_bidder) returns (Auction.STATE) {
+        auctionStatus = STATE.BOUGHT;
+        purchaser = _bidder;
+        payable(owner).transfer(msg.value);
+        return auctionStatus;
+    }
+
     function claimWinningBid(address _owner)
         public
         only_owner(_owner)
@@ -173,6 +180,11 @@ contract Auction {
         return true;
     }
 
+      function endAuction() public is_ongoing returns (STATE) {
+        auctionStatus = STATE.ENDED;
+        return auctionStatus;
+    }
+
     function cancelAuction(address _owner)
         public
         only_owner(_owner)
@@ -180,18 +192,6 @@ contract Auction {
         returns (STATE)
     {
         auctionStatus = STATE.CANCELLED;
-        return auctionStatus;
-    }
-
-    function endAuction() public is_ongoing returns (STATE) {
-        auctionStatus = STATE.ENDED;
-        return auctionStatus;
-    }
-
-    function buyAuction(address _bidder) public payable is_ongoing only_bidder(_bidder) returns (Auction.STATE) {
-        auctionStatus = STATE.BOUGHT;
-        purchaser = _bidder;
-        payable(owner).transfer(msg.value);
         return auctionStatus;
     }
 

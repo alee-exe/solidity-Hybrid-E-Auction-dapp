@@ -43,10 +43,9 @@ export default class CurrentBidsPage extends Component {
             let userLostAndExpiredAuctionIds = [];
 
             for (let id = 0; id < listedAuctions.length; id++) {
-                const userTotalBids = await contract.methods.getUserTotalBids(id, userAccount).call();
-                const userTotalBidsConvert = web3.utils.fromWei(userTotalBids, 'ether');
+                const userCurrentBid = web3.utils.fromWei(await contract.methods.getUserCurrentBid(id, userAccount).call(), 'ether');
 
-                if (userTotalBidsConvert > 0) {
+                if (userCurrentBid > 0) {
                     const auctionStatus = await contract.methods.getAuctionStatus(id).call();
                     const highestBidder = await contract.methods.getHighestBidder(id).call();
 
