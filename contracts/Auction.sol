@@ -110,12 +110,6 @@ contract Auction {
             require(msg.value >= startingBid, "Initial bid must be greater or equal to starting bid.");
         }
 
-        // prevent escrow bidding
-        if (trackAllBids[_bidder] > 0) {
-            payable(_bidder).transfer(trackAllBids[_bidder]);
-            trackAllBids[_bidder] = 0;
-        }
-
         // if Auction type is Private then change bid handling and requirements
         if (isPrivate) {
             if (bidIncrement > 0 ) {
@@ -130,8 +124,8 @@ contract Auction {
                 highestBid = msg.value;
             }
 
+            checkEscrowBidding(_bidder);
             trackAllBids[_bidder] += msg.value;
-
         } else {
             if (bidIncrement > 0 ) {
                 require(msg.value >= highestBid + bidIncrement, "Placed bid must be greater than highest bid + bid increment.");
@@ -139,6 +133,7 @@ contract Auction {
                 require(msg.value > highestBid, "Placed bid must be greater than highest bid.");
             }
 
+            checkEscrowBidding(_bidder);
             highestBidder = _bidder;
             // msg.value is the bid value in wei
             highestBid = msg.value;
@@ -147,6 +142,15 @@ contract Auction {
 
         numberOfTotalBids++;
         emit bidEvent(highestBidder, highestBid);
+        return true;
+    }
+
+    function checkEscrowBidding(address _bidder) private returns (bool) {
+        // prevent escrow bidding
+        if (trackAllBids[_bidder] > 0) {
+            payable(_bidder).transfer(trackAllBids[_bidder]);
+            trackAllBids[_bidder] = 0;
+        }
         return true;
     }
 

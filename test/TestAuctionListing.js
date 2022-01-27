@@ -21,18 +21,20 @@ beforeEach(async () => {
     // Firstly deploy AuctionListing contract - using the default gas price and fee values in Truffle console (otherwise base fee exceeds gas limit)
     contract = await new web3Provider.eth.Contract(abi).deploy({ data: bytecode }).send({ from: userAccount, gas: 4712388, gasPrice: 100000000000 });
 
-    const setAuctionDuration = 1;
-    const setAuctionSellingPrice = 0;
-    const setAuctionBidIncrement = 0;
-    const setAuctionStartingBid = 0;
-    const setAuctionTypeIsPrivate = false;
+    const setAuctionDuration = 24;
+    const setAuctionSellingPrice = 10;
+    const setAuctionBidIncrement = 2;
+    const setAuctionStartingBid = 1;
+    // const setAuctionTypeIsPrivate = false;
     const setItemName = "Item Name";
     const setItemDescription = "Item Description";
     const setItemCondition = "Item Condition";
     const setIpfsImageHash = "Item Image Ipfs Hash";
 
-    // Then create a single Auction with its id being 0 (as listing is zero-based for its index)
-    contract.methods.createAuction(setAuctionDuration, setAuctionSellingPrice, setAuctionBidIncrement, setAuctionStartingBid, setAuctionTypeIsPrivate, setItemName, setItemDescription, setItemCondition, setIpfsImageHash).send({ from: userAccount, gas: 4712388, gasPrice: 100000000000 });
+    // Then create a single public Auction with its id being 0 (as listing is zero-based for its index)
+    contract.methods.createAuction(setAuctionDuration, setAuctionSellingPrice, setAuctionBidIncrement, setAuctionStartingBid, false, setItemName, setItemDescription, setItemCondition, setIpfsImageHash).send({ from: userAccount, gas: 4712388, gasPrice: 100000000000 });
+    // Likewise, create a single private Auction with its id being 1
+    contract.methods.createAuction(setAuctionDuration, setAuctionSellingPrice, setAuctionBidIncrement, setAuctionStartingBid, true, setItemName, setItemDescription, setItemCondition, setIpfsImageHash).send({ from: userAccount, gas: 4712388, gasPrice: 100000000000 });
 });
 
 describe('AuctionListing Deployed', () => {
@@ -44,7 +46,7 @@ describe('AuctionListing Deployed', () => {
 describe('Auction Deployed', () => {
     it('deploys the Auction contract', async () => {
         const returnedListedAuctions = await contract.methods.getListedAuctions().call();
-        assert.equal(returnedListedAuctions.length, 1, "Should contain a single Auction contract.");
+        assert.equal(returnedListedAuctions.length, 2, "Should contain two Auctions in AuctionListing contract.");
     })
 });
 
@@ -122,7 +124,7 @@ describe('Get Auctioned Item', () => {
         const itemDescription = returnedAuctionedItem[1];
         assert.equal(itemDescription, "Item Description", "Auctioned item description should match.");
     })
-    
+
     it('check auctioned item condition is matching', async () => {
         const returnedAuctionedItem = await contract.methods.getAuctionedItem(id).call();
         const itemCondition = returnedAuctionedItem[2];
@@ -172,18 +174,147 @@ describe('Get Initial User Current Bid', () => {
     })
 });
 
-describe('Get Initial User Current Bid', () => {
-    it('check inital user current bid value is correct', async () => {
-        const returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, userAccount).call(), 'ether');
-        assert.equal(returnedUserCurrentBid, 0, "User current bid value should be equal to 0.");
-    })
-});
-
-describe('Get Initial Total Number of Bids ', () => {
+describe('Get Initial Total Number of Bids', () => {
     it('check inital total number of bids value is correct', async () => {
         const returnedTotalNumberOfBids = await contract.methods.getTotalNumberOfBids(id).call();
         assert.equal(returnedTotalNumberOfBids, 0, "Total number of bids should be equal to 0.");
     })
 });
+
+describe('Simulate Transactional Bid', () => {
+    it('place bid using new account', async () => {
+        const bidder = userAddresses[1];
+        // Bid 3 Ether
+        const bidValue = '3';
+        await contract.methods.placeBid(id).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+
+        const returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 3, "User current bid should be greater than 0.");
+    })
+});
+
+describe('Owner should not be able to bid in their own Auction', () => {
+    it('place bid using owner account', async () => {
+        // Bid 3 Ether
+        const bidValue = '3';
+        await contract.methods.placeBid(id).send({ from: userAccount, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+    });
+});
+
+describe('New bid must be greater than previous bid', () => {
+    it('place new bid with the same value as previously (PRIVATE)', async () => {
+        const bidder = userAddresses[2];
+        const privateId = 1;
+        // Bid 3 Ether
+        const bidValue = '3';
+        // First bid
+        await contract.methods.placeBid(privateId).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+        // Second bid with same value
+        await contract.methods.placeBid(privateId).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+    });
+
+    it('place new bid with the same value as previously (PUBLIC)', async () => {
+        const bidder = userAddresses[1];
+        // Bid 3 Ether
+        const bidValue = '3';
+        // First bid
+        await contract.methods.placeBid(id).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+        // Second bid with same value
+        await contract.methods.placeBid(id).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+    });
+});
+
+describe('Verify conditional Auction Type on Bidding', () => {
+    it('new bid can be equal to current highest bid (PRIVATE)', async () => {
+        const bidder1 = userAddresses[1];
+        const bidder2 = userAddresses[2];
+        const privateId = 1;
+        // Bid 3 Ether
+        const bidValue = '3';
+        // First bidder
+        await contract.methods.placeBid(privateId).send({ from: bidder1, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+        // Second bidder
+        await contract.methods.placeBid(privateId).send({ from: bidder2, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+
+        const returnedUserCurrentBid1 = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(privateId, bidder1).call(), 'ether');
+        assert.equal(returnedUserCurrentBid1, 3, "User current bid should be greater than 0.");
+
+        const returnedUserCurrentBid2 = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(privateId, bidder2).call(), 'ether');
+        assert.equal(returnedUserCurrentBid2, 3, "User current bid should be greater than 0.");
+    });
+
+    it('new bid cannot be equal to current highest bid (PUBLIC)', async () => {
+        const bidder1 = userAddresses[1];
+        const bidder2 = userAddresses[2];
+        // Bid 3 Ether
+        const bidValue = '3';
+        // First bidder
+        await contract.methods.placeBid(id).send({ from: bidder1, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+        // Second bidder
+        await contract.methods.placeBid(id).send({ from: bidder2, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+
+    });
+});
+
+describe('Verify conditional bid increment on Bidding', () => {
+    it('new bid must be greater or equal to current bid and bid increment (PRIVATE)', async () => {
+        const bidder1 = userAddresses[1];
+        const privateId = 1;
+        
+        await contract.methods.placeBid(privateId).send({ from: bidder1, value: web3Provider.utils.toWei('2', 'ether'), gas: 4712388, gasPrice: 100000000000 });
+        // Bid must be greater or equal to 2 + 2
+        await contract.methods.placeBid(privateId).send({ from: bidder1, value: web3Provider.utils.toWei('1', 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+    });
+
+    it('new bid must be greater or equal to highest bid and bid increment (PUBLIC)', async () => {
+        const bidder1 = userAddresses[1];
+        const bidder2 = userAddresses[2];
+     
+        await contract.methods.placeBid(id).send({ from: bidder1, value: web3Provider.utils.toWei('2', 'ether'), gas: 4712388, gasPrice: 100000000000 });
+        // Bid must be greater or equal to 2 + 2
+        await contract.methods.placeBid(id).send({ from: bidder2, value: web3Provider.utils.toWei('1', 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+    });
+});
+
+
+
+
+
 
 // TO-DO: SIMULATE USER-BIDDING TRANSACTIONS
