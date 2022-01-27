@@ -24,7 +24,7 @@ export default withRouter(class Home extends Component {
         startingBid: null,
         bidIncrement: null,
         sellingPrice: null,
-        auctionIsPrivate: null,
+        auctionTypeIsPrivate: null,
         itemName: null,
         itemCondition: null,
         itemDescription: null,
@@ -73,7 +73,7 @@ export default withRouter(class Home extends Component {
             const auctionStatus = await contract.methods.getAuctionStatus(id).call();
             const auctionedItem = await contract.methods.getAuctionedItem(id).call();
             const auctionTimer = (endBlockTimeStamp - Math.floor(Date.now() / 1000));
-            const auctionIsPrivate = await contract.methods.getIsPrivate(id).call();
+            const auctionTypeIsPrivate = await contract.methods.getIsPrivate(id).call();
             const auctionPurchaser = await contract.methods.getAuctionPurchaser(id).call();
 
             const itemName = auctionedItem[0];
@@ -84,7 +84,7 @@ export default withRouter(class Home extends Component {
             const userCurrentBid = web3.utils.fromWei(await contract.methods.getUserCurrentBid(id, userAccount).call(), 'ether');
             const totalNumberOfBids = await contract.methods.getTotalNumberOfBids(id).call();
 
-            this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userCurrentBid, totalNumberOfBids, owner, startingBid, bidIncrement, sellingPrice, auctionIsPrivate, auctionPurchaser, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid, auctionStatus, auctionTimer, auctionId: id });
+            this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userCurrentBid, totalNumberOfBids, owner, startingBid, bidIncrement, sellingPrice, auctionTypeIsPrivate, auctionPurchaser, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid, auctionStatus, auctionTimer, auctionId: id });
 
             this.intervalAuctionTimer = setInterval(() => this.setState({ auctionTimer: endBlockTimeStamp - Math.floor(Date.now() / 1000) }), 1000);
 
@@ -201,7 +201,7 @@ export default withRouter(class Home extends Component {
     }
 
     onLogBidEvent = async () => {
-        const { auctionContract, web3Provider, auctionIsPrivate } = this.state;
+        const { auctionContract, web3Provider, auctionTypeIsPrivate } = this.state;
         console.log("Registered user bid event.");
 
         await auctionContract.events.bidEvent({ fromBlock: 'latest' })
@@ -216,7 +216,7 @@ export default withRouter(class Home extends Component {
                 // const auctionAddress = event['address'];
                 let bidEventLog = null;
 
-                if (this.state.auctionIsPrivate) {
+                if (this.state.auctionTypeIsPrivate) {
                     // If private hide bidding amount
                     bidEventLog = "<span class='font-bold'>New Bid from User Address: </span>" + userAddress + ". <br> <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + " on " + convertTimestampToDate(Math.floor(Date.now() / 1000)) + ".";
                 } else {
@@ -353,7 +353,7 @@ export default withRouter(class Home extends Component {
                     <p className="pb-3"><span className="font-bold">Auction End Date: </span>{this.state.endBlockTimeStamp === null || this.state.auctionStatus === null ? null : (<span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {this.state.auctionStatus != 1 ? (enumStatus(this.state.auctionStatus)): (convertTimestampToDate(this.state.auctionTimer, "time"))})</span>)}</p>
 
                     <p className="pb-3"><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>
-                    <p className="pb-3"><span className="font-bold">Auction Type: </span>{this.state.auctionIsPrivate === null ? null : (checkAuctionType(this.state.auctionIsPrivate))}</p>
+                    <p className="pb-3"><span className="font-bold">Auction Type: </span>{this.state.auctionTypeIsPrivate === null ? null : (checkAuctionType(this.state.auctionTypeIsPrivate))}</p>
 
                     {this.state.startingBid === null ? null : (this.state.startingBid == 0 ? null : (<p className="pb-3"><span className="font-bold">Starting Bid: </span>{this.state.startingBid} ETH</p>))}
                     {this.state.bidIncrement === null ? null : (this.state.bidIncrement == 0 ? null : (<p className="pb-3"><span className="font-bold">Bid Increment: </span>{this.state.bidIncrement} ETH</p>))}
@@ -371,7 +371,7 @@ export default withRouter(class Home extends Component {
                     <p className="mb-2 text-lg">Auction Bids</p>
                     <hr className="pb-4 border-slate-400" />
                     <p><span className="font-bold">Your Current Bid: </span>{this.state.userCurrentBid === null ? null : (<span>{this.state.userCurrentBid} ETH</span>)}</p>
-                    {this.state.auctionIsPrivate === null ? null : (this.state.auctionIsPrivate ? null : (<div><p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p> <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid} ETH</p></div>))}
+                    {this.state.auctionTypeIsPrivate === null ? null : (this.state.auctionTypeIsPrivate ? null : (<div><p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p> <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid} ETH</p></div>))}
                     <p className="mt-2"><span className="font-bold">Total Number of Bids in this Auction: </span>{this.state.totalNumberOfBids}</p>
                 </div>
 
