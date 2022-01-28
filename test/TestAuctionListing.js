@@ -22,9 +22,10 @@ beforeEach(async () => {
     contract = await new web3Provider.eth.Contract(abi).deploy({ data: bytecode }).send({ from: userAccount, gas: 4712388, gasPrice: 100000000000 });
 
     const setAuctionDuration = 24;
-    const setAuctionSellingPrice = 10;
-    const setAuctionBidIncrement = 2;
-    const setAuctionStartingBid = 1;
+    const setAuctionSellingPrice = web3Provider.utils.toWei('10', 'ether');
+    const setAuctionBidIncrement = web3Provider.utils.toWei('2', 'ether');
+    const setAuctionStartingBid = web3Provider.utils.toWei('1', 'ether');
+
     // const setAuctionTypeIsPrivate = false;
     const setItemName = "Item Name";
     const setItemDescription = "Item Description";
@@ -156,7 +157,7 @@ describe('Get Initial Highest Bidder', () => {
 describe('Get Initial Auction Status', () => {
     it('check initial auction status is correct', async () => {
         const returnedAuctionStatus = await contract.methods.getAuctionStatus(id).call();
-        assert.equal(returnedAuctionStatus, 1, "Initial Auction status should be equal to 0.");
+        assert.equal(returnedAuctionStatus, 1, "Initial Auction status should be equal to 1.");
     })
 });
 
@@ -181,7 +182,7 @@ describe('Get Initial Total Number of Bids', () => {
     })
 });
 
-describe('Simulate Transactional Bid', () => {
+describe('Simulate Bid Transaction', () => {
     it('place bid using new account', async () => {
         const bidder = userAddresses[1];
         // Bid 3 Ether
@@ -312,9 +313,87 @@ describe('Verify conditional bid increment on Bidding', () => {
     });
 });
 
+describe('Simulate Auction Cancellation', () => {
+    it('Auction status can be set to CANCELLED', async () => {
+        let auctionStatus = await contract.methods.getAuctionStatus(id).call();
+        assert.equal(auctionStatus, 1, "Auction should be ongoing.");
 
+         // Owner cancels Auction
+        await contract.methods.cancelAuction(id).send({ from: userAccount });
 
+        auctionStatus = await contract.methods.getAuctionStatus(id).call();
+        assert.equal(auctionStatus, 0, "Auction should now be cancelled.");
+    })
+});
 
+describe('Simulate Auction Ending', () => {
+    it('Auction status can be set to ENDED', async () => {
+        let auctionStatus = await contract.methods.getAuctionStatus(id).call();
+        assert.equal(auctionStatus, 1, "Auction should be ongoing.");
 
+         // Owner ends Auction
+        await contract.methods.endAuction(id).send({ from: userAccount });
 
-// TO-DO: SIMULATE USER-BIDDING TRANSACTIONS
+        auctionStatus = await contract.methods.getAuctionStatus(id).call();
+        assert.equal(auctionStatus, 2, "Auction should now be ended.");
+    })
+});
+
+describe('Simulate Auction being Bought', () => {
+    it('Auction status can be set to BOUGHT', async () => {
+        const bidder = userAddresses[1];
+        const sellingPrice = '10';
+
+        let auctionStatus = await contract.methods.getAuctionStatus(id).call();
+        assert.equal(auctionStatus, 1, "Auction should be ongoing.");
+
+        // Purchase Auction
+        await contract.methods.buyAuction(id).send({ from: bidder, value: web3Provider.utils.toWei(sellingPrice, 'ether'),  gas: 4712388, gasPrice: 100000000000 });
+        auctionStatus = await contract.methods.getAuctionStatus(id).call();
+        assert.equal(auctionStatus, 3, "Auction should now be bought.");
+    })
+});
+
+describe('Simulate Withdrawal Transaction', () => {
+    it('withdraw bid after Auction has expired', async () => {
+        const bidder = userAddresses[1];
+        // Bid 5 Ether
+        const bidValue = '5';
+        await contract.methods.placeBid(id).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+
+        let returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 5, "User current bid should be greater than 0.");
+
+        // Owner cancels Auction
+        await contract.methods.cancelAuction(id).send({ from: userAccount });
+        // Bidder withdraws their bid
+        await contract.methods.withdrawBid(id).send({ from: bidder });
+
+        returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 0, "User current bid should now be equal to 0.");
+    })
+});
+
+describe('Simulate Owner Claiming Winning Bid', () => {
+    it('owner can claim the winning bid after Auction has ended', async () => {
+        let auctionStatus = await contract.methods.getAuctionStatus(id).call();
+        assert.equal(auctionStatus, 1, "Auction should be ongoing.");
+
+        const bidder = userAddresses[1];
+        // Bidder bids 5 Ether
+        const bidValue = '5';
+        await contract.methods.placeBid(id).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+
+         // Owner ends Auction
+        await contract.methods.endAuction(id).send({ from: userAccount });
+
+        auctionStatus = await contract.methods.getAuctionStatus(id).call();
+        assert.equal(auctionStatus, 2, "Auction should now be ended.");
+
+        // Owner claims winning bid
+        await contract.methods.claimWinningBid(id).send({ from: userAccount });
+
+        const returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 0, "Highest bidder bid should be equal to 0.");
+    })
+});

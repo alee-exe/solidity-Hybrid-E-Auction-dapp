@@ -164,6 +164,9 @@ contract Auction {
     }
 
      function buyAuction(address _bidder) public payable is_ongoing only_bidder(_bidder) returns (Auction.STATE) {
+        require(sellingPrice > 0, "Auction Price must be greater than 0 ETH to buy.");
+        require(msg.value == sellingPrice, "Sent ETH value must be equal to Selling Price.");
+
         auctionStatus = STATE.BOUGHT;
         purchaser = _bidder;
         payable(owner).transfer(msg.value);
@@ -173,12 +176,12 @@ contract Auction {
     function claimWinningBid(address _owner)
         public
         only_owner(_owner)
-        is_expired
         returns (bool)
     {
         require(trackAllBids[highestBidder] > 0, "Highest bidder must have placed a bid greater than 0 ETH to claim.");
-        uint256 winningAmount = trackAllBids[highestBidder];
+        require(auctionStatus == STATE.ENDED, "Auction status must be ENDED.");
 
+        uint256 winningAmount = trackAllBids[highestBidder];
         trackAllBids[highestBidder] = 0;
         payable(_owner).transfer(winningAmount);
         return true;

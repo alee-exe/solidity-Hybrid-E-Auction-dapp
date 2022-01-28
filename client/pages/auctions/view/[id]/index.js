@@ -216,7 +216,7 @@ export default withRouter(class Home extends Component {
                 // const auctionAddress = event['address'];
                 let bidEventLog = null;
 
-                if (this.state.auctionTypeIsPrivate) {
+                if (auctionTypeIsPrivate) {
                     // If private hide bidding amount
                     bidEventLog = "<span class='font-bold'>New Bid from User Address: </span>" + userAddress + ". <br> <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + " on " + convertTimestampToDate(Math.floor(Date.now() / 1000)) + ".";
                 } else {
