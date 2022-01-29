@@ -31,7 +31,7 @@ contract Auction {
         CANCELLED,
         ONGOING,
         ENDED,
-        BOUGHT
+        SOLD
     }
 
     STATE public auctionStatus;
@@ -167,7 +167,7 @@ contract Auction {
         require(sellingPrice > 0, "Auction Price must be greater than 0 ETH to buy.");
         require(msg.value == sellingPrice, "Sent ETH value must be equal to Selling Price.");
 
-        auctionStatus = STATE.BOUGHT;
+        auctionStatus = STATE.SOLD;
         purchaser = _bidder;
         payable(owner).transfer(msg.value);
         return auctionStatus;

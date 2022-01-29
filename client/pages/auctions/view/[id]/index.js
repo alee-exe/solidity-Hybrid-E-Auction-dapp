@@ -128,7 +128,7 @@ export default withRouter(class Home extends Component {
             this.setState({ auctionStatus: auctionStatusEnded });
         };
 
-        // Check if auction has been cancelled, ended, or bought
+        // Check if auction has been cancelled, ended, or sold
         const auctionStatusCheck = await contract.methods.getAuctionStatus(auctionId).call();
         if (auctionStatusCheck != this.state.auctionStatus) {
             this.setState({ auctionStatus: auctionStatusCheck });
@@ -361,7 +361,7 @@ export default withRouter(class Home extends Component {
 
                     <p className="pb-3"><span className="font-bold">Created on: </span>{this.state.startBlockTimeStamp === null ? null : (<span>{convertTimestampToDate(this.state.startBlockTimeStamp)}&#46;</span>)}</p>
 
-                    {this.state.sellingPrice === null || this.state.auctionStatus === null ? null : (this.state.sellingPrice > 0 && this.state.auctionStatus == 1 ? (<button className="font-bold bg-blue-500 text-white rounded p-4 shadow-lg w-2/5" id="purchase" onClick={this.onClickBuyAuction} type="button">Purchase Auction</button>) : null)}
+                    {this.state.sellingPrice === null || this.state.auctionStatus === null ? null : (this.state.sellingPrice > 0 && this.state.auctionStatus == 1 ? (<button className="font-bold bg-blue-500 text-white rounded p-4 shadow-lg w-2/5" id="purchase" onClick={this.onClickBuyAuction} type="button">Buy Now</button>) : null)}
                     {this.state.auctionPurchaser === null ? null : (this.state.auctionPurchaser === "0x0000000000000000000000000000000000000000" ? null : (<p className="pb-3"><span className="font-bold">Purchased by: </span>{this.state.auctionPurchaser}</p>))}
                 </div>
             </div>
