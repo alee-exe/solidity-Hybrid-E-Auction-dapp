@@ -86,8 +86,7 @@ export default class CurrentBidsPage extends Component {
                     this.state.userBiddedAuctions.map((auction, idx) => (
                         <div key={idx}>
                             <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userBiddedAuctionIds[this.state.userBiddedAuctions.indexOf(auction)] + 1 } }}>
-
-                                <a><span className="pl-2 border flex bg-slate-200 font-semibold">Auction Contract: {auction}</span>
+                                <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction Contract: {auction}</span>
                                     <AuctionPreview web3={this.state.web3Provider} id={this.state.userBiddedAuctionIds[this.state.userBiddedAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a>
                             </Link>
                         </div>
@@ -100,7 +99,6 @@ export default class CurrentBidsPage extends Component {
                     this.state.userWonAndExpiredAuctions.map((auction, idx) => (
                         <div key={idx}>
                             <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userWonAndExpiredAuctionIds[this.state.userWonAndExpiredAuctions.indexOf(auction)] + 1 } }}>
-
                                 <a><span className="pl-2 border flex bg-green-200 font-semibold">Auction Contract: {auction}</span>
                                     <AuctionPreview web3={this.state.web3Provider} id={this.state.userWonAndExpiredAuctionIds[this.state.userWonAndExpiredAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a>
                             </Link>
@@ -108,13 +106,12 @@ export default class CurrentBidsPage extends Component {
                     ))
                 )}
 
-                <h1 className="text-2xl font-bold pt-10 pb-4"> Your Expired Bids </h1>
+                <h1 className="text-2xl font-bold pt-10 pb-4"> Your Expired Bids (Withdrawable) </h1>
                 <hr className="border-slate-400 pb-4" />
                 {this.state.userLostAndExpiredAuctions === null || this.state.userLostAndExpiredAuctions.length == 0 ? <p>Your Bids have not been unredeemed on any expired Auctions yet.</p> : (
                     this.state.userLostAndExpiredAuctions.map((auction, idx) => (
                         <div key={idx}>
                             <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userLostAndExpiredAuctionIds[this.state.userLostAndExpiredAuctions.indexOf(auction)] + 1 } }}>
-
                                 <a><span className="pl-2 border flex bg-red-200 font-semibold">Auction Contract: {auction}</span>
                                     <AuctionPreview web3={this.state.web3Provider} id={this.state.userLostAndExpiredAuctionIds[this.state.userLostAndExpiredAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a>
                             </Link>

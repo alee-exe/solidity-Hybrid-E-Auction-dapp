@@ -62,16 +62,17 @@ export default class AuctionPreviewComponent extends Component {
                 </div>
 
                 <div className="row-span-2 col-span-2 pt-5 pr-2">
-                    <p><span className="font-bold">Auction Owner (Address): </span>{this.state.owner}</p>
-                    <p><span className="font-bold">Start Date: </span>{this.state.startBlockTimeStamp === null ? null : (convertTimestampToDate(this.state.startBlockTimeStamp))}</p>
-                    <p><span className="font-bold">End Date: </span>{this.state.endBlockTimeStamp === null ? null : (convertTimestampToDate(this.state.endBlockTimeStamp))}</p>
-                    <p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p>
-                    <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid === null ? null : (<span>{this.state.highestBid} ETH</span>)} </p>
-                    <p><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>
-
                     <p><span className="font-bold">Item Name: </span>{this.state.itemName}</p>
                     <p><span className="font-bold">Item Description: </span>{this.state.itemDescription}</p>
                     <p><span className="font-bold">Item Condition: </span>{this.state.itemCondition}</p>
+                    <hr className="border-slate-200 mt-2 mb-2" />
+
+                    <p><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>
+                    <p><span className="font-bold">Auction Owner (Address): </span>{this.state.owner}</p>
+                    <p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p>
+                    <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid === null ? null : (<span>{this.state.highestBid} ETH</span>)}</p>
+                    <p><span className="font-bold">Start Date: </span>{this.state.startBlockTimeStamp === null ? null : (convertTimestampToDate(this.state.startBlockTimeStamp))}</p>
+                    <p><span className="font-bold">End Date: </span>{this.state.endBlockTimeStamp === null ? null : (convertTimestampToDate(this.state.endBlockTimeStamp))}</p>
                 </div>
             </div>
         )

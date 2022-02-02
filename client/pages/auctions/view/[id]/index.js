@@ -86,7 +86,7 @@ export default withRouter(class Home extends Component {
 
             this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userCurrentBid, totalNumberOfBids, owner, startingBid, bidIncrement, sellingPrice, auctionTypeIsPrivate, auctionPurchaser, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid, auctionStatus, auctionTimer, auctionId: id });
 
-            this.intervalAuctionTimer = setInterval(() => this.setState({ auctionTimer: endBlockTimeStamp - Math.floor(Date.now() / 1000) }), 1000);
+            this.intervalAuctionTimer = setInterval(() => this.setState({ auctionTimer: (endBlockTimeStamp - (Math.floor(Date.now() / 1000))) }), 1000);
 
             this.intervalAuctionStatus = setInterval(() => {
                 if (this.state.auctionTimer <= 0 || this.state.auctionStatus == 1) {
@@ -335,7 +335,7 @@ export default withRouter(class Home extends Component {
     render() {
         return (<div>
             {this.state.bidAlert}
-            <div className="flex mt-4 card border">
+            <div className="flex mt-4 card border bg-slate-50">
                 <div className="row-span-3 pl-5 pt-5">
                     {this.state.ipfsImageHash === null ? (<Image src={LoadingImage} width={670} height={440} priority={true}></Image>) : (<Image src={`https://ipfs.infura.io/ipfs/${this.state.ipfsImageHash}`} width={670} height={440} priority={true}></Image>)}
                 </div>
@@ -367,17 +367,17 @@ export default withRouter(class Home extends Component {
             </div>
 
             <div className="flex">
-                <div className="mt-4 card border w-1/2 mr-4">
-                    <p className="mb-2 text-lg">Auction Bids</p>
+                <div className="mt-4 card border w-1/2 mr-4 bg-slate-50">
+                    <p className="mb-2 text-xl">Auction Bids</p>
                     <hr className="pb-4 border-slate-400" />
                     <p><span className="font-bold">Your Current Bid: </span>{this.state.userCurrentBid === null ? null : (<span>{this.state.userCurrentBid} ETH</span>)}</p>
                     {this.state.auctionTypeIsPrivate === null ? null : (this.state.auctionTypeIsPrivate ? null : (<div><p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p> <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid} ETH</p></div>))}
                     <p className="mt-2"><span className="font-bold">Total Number of Bids in this Auction: </span>{this.state.totalNumberOfBids}</p>
                 </div>
 
-                <div className="mt-4 flex card border w-1/2">
+                <div className="mt-4 flex card border w-1/2 bg-slate-50">
                     <div className="w-1/2">
-                        <div className="mb-4 flex">Enter your Bid Value (Converts from Wei to ETH): <Tooltip header="Place Bid" message="Enter your bid value using the input below. Place and finalised your bid by clicking the blue button and accepting the MetaMask transaction. See your current bid value to market fiat currency using the green dropdown menu. NOTE: Bid values do not account for required gas fees." ></Tooltip></div>
+                        <div className="mb-4 flex text-lg">Enter your Bid Value (Converts from Wei to ETH): <Tooltip header="Place Bid" message="Enter your bid value using the input below. Submit your bid by entering a value and accepting the MetaMask transaction. Convert your bid value to the current market fiat price using the currency dropdown menu. NOTE: Bid values do not account for required gas fees." ></Tooltip></div>
                         <form onSubmit={this.onClickPlaceBid} className="flex">
                             {this.state.bidIncrement == 0 ? (<input type="number" min="0" step="any" placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />) : (<input type="number" min="0" step={this.state.bidIncrement} placeholder="Insert ETH Amount" className="pt-2 border rounded p-2" onChange={this.handleBidValue} required />)}
                             <button type="submit" id="bid" className="font-bold bg-blue-500 text-white rounded p-4 shadow-lg">
@@ -397,7 +397,7 @@ export default withRouter(class Home extends Component {
                     </select>
 
                     <div className="w-1/2 pl-10">
-                        <div className="mb-4 flex"><p className="mr-1">Withdraw from Auction: </p><Tooltip header="Withdrawal of Bid" message="You can only withdraw once the Auction has expired (Ended or Cancelled status)." ></Tooltip></div>
+                        <div className="mb-4 flex text-lg"><p className="mr-1">Withdraw from Auction: </p><Tooltip header="Withdrawal of Bid" message="You can only withdraw once the Auction has expired (Ended or Cancelled status)." ></Tooltip></div>
                         {this.state.auctionStatus != 1 ? <button className="font-bold bg-slate-500 text-white rounded p-4 shadow-lg w-4/5" id="withdraw" onClick={this.onClickWithdraw} type="button">Withdraw
                             bids</button> : <button className="font-bold bg-slate-500 text-white rounded p-4 shadow-lg w-4/5 opacity-50 cursor-not-allowed" disabled id="withdraw" onClick={this.onClickWithdraw} type="button">Withdraw
                                 bids</button>}
@@ -406,14 +406,14 @@ export default withRouter(class Home extends Component {
             </div>
 
             <div className="flex">
-                <div id="auctionEventLogs" className="mt-4 card border w-8/12 mr-4">
-                    <p className="mb-2 text-lg">Auction Event Logs</p>
+                <div id="auctionEventLogs" className="mt-4 card border w-8/12 mr-4 bg-slate-50">
+                    <p className="mb-2 text-xl">Auction Event Logs</p>
                     <hr className="pb-4 border-slate-400" />
                     <p id="singleAuctionEventLog"></p>
                 </div>
 
-                <div id="auctionOwnerOperations" className="mt-4 card border w-4/12">
-                    <div className="mb-2 text-lg flex"><p className="mr-1">Auction Owner Operations</p><Tooltip header="Auction Owner Operations" message="Only the Contract Owner of this Auction can perform these operations." ></Tooltip></div>
+                <div id="auctionOwnerOperations" className="mt-4 card border w-4/12 bg-slate-50">
+                    <div className="mb-2 text-xl flex"><p className="mr-1">Auction Owner Operations</p><Tooltip header="Auction Owner Operations" message="Only the Contract Owner of this Auction can perform these operations." ></Tooltip></div>
                     <hr className="pb-4 border-slate-400" />
                     <div className="flex">
                         {this.state.userAccount === this.state.owner ? <button className="font-bold bg-red-700 text-white rounded p-4 shadow-lg w-1/2 pb-4 mr-4" id="cancel" onClick={this.onClickCancel} type="button">Cancel Auction</button> :

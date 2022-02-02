@@ -11,8 +11,10 @@ function convertTimestampToDate(timestamp, mode) {
     if (mode !== "time") {
         conversion = date.getDate() + '/' + (date.getMonth() + 1) + '/' + date.getFullYear() + " at " + date.getHours() + ":" + (date.getMinutes() < 10 ? '0' : '') + date.getMinutes() + (date.getHours() < 12 ? ' AM' : ' PM' );
     } else {
-        conversion = (date.getHours() - 1) + ":" + (date.getMinutes() < 10 ? '0' : '') + date.getMinutes() + ":" + (date.getSeconds() < 10 ? '0' : '') + date.getSeconds();
+        let hours = Math.floor(timestamp/60/60);
+        conversion = hours + ":" + (date.getMinutes() < 10 ? '0' : '') + date.getMinutes() + ":" + (date.getSeconds() < 10 ? '0' : '') + date.getSeconds();
     }
+
     return conversion;
 };
 

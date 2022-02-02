@@ -13,7 +13,9 @@ export default class AuctionActivityPage extends Component {
         userOngoingAuctions: null,
         userOngoingAuctionIds: null,
         userExpiredAuctions: null,
-        userExpiredAuctionIds: null
+        userExpiredAuctionIds: null,
+        userPurchasedAuctions: null,
+        userPurchasedAuctionIds: null
     };
 
     ROUTE_AUCTION_ID = "auctions/view/[id]";
@@ -32,11 +34,14 @@ export default class AuctionActivityPage extends Component {
             let userOngoingAuctionIds = [];
             let userExpiredAuctions = [];
             let userExpiredAuctionIds = [];
+            let userPurchasedAuctions = [];
+            let userPurchasedAuctionIds = [];
 
-            // Check which auctions the user is the owner of and the id of the auction
             for (let id = 0; id < listedAuctions.length; id++) {
                 const auctionOwner = await contract.methods.getOwner(id).call();
+                const auctionPurchaser = await contract.methods.getAuctionPurchaser(id).call();
 
+                // Check which auctions the user is the owner of and the id of the auction
                 if (userAccount === auctionOwner) {
                     const auctionStatus = await contract.methods.getAuctionStatus(id).call();
 
@@ -48,14 +53,19 @@ export default class AuctionActivityPage extends Component {
                         userOngoingAuctionIds.push(id);
                     }
                 };
+
+                // Check if user has purchased the auction
+                if (userAccount === auctionPurchaser) {
+                    userPurchasedAuctions.push(listedAuctions[id]);
+                    userPurchasedAuctionIds.push(id);
+                };
             };
 
-            this.setState({ web3Provider: web3, contract, userOngoingAuctions, userOngoingAuctionIds, userExpiredAuctions, userExpiredAuctionIds });
+            this.setState({ web3Provider: web3, contract, userOngoingAuctions, userOngoingAuctionIds, userExpiredAuctions, userExpiredAuctionIds, userPurchasedAuctions, userPurchasedAuctionIds });
         } catch (error) {
             console.log(error);
         };
     }
-
 
     render() {
         return (
@@ -67,7 +77,6 @@ export default class AuctionActivityPage extends Component {
                     this.state.userOngoingAuctions.map((auction, idx) => (
                         <div key={idx}>
                             <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userOngoingAuctionIds[this.state.userOngoingAuctions.indexOf(auction)] + 1 } }}>
-
                                 <a><span className="pl-2 border flex bg-green-200 font-semibold">Auction Contract: {auction}</span>
                                     <AuctionPreview web3={this.state.web3Provider} id={this.state.userOngoingAuctionIds[this.state.userOngoingAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a>
                             </Link>
@@ -75,16 +84,27 @@ export default class AuctionActivityPage extends Component {
                     ))
                 )}
 
-                <div className="text-2xl font-bold pt-10 pb-4 flex"> Expired Auctions you have listed (Owner of) <Tooltip header="Expired Auctions" message="Expired Auctions are Auctions that have the status of either CANCELLED or ENDED (I.e., no longer ONGOING)." ></Tooltip></div>
+                <div className="text-2xl font-bold pt-10 pb-4 flex"> Expired Auctions you have listed (Owner of) <Tooltip header="Expired Auctions" message="Expired Auctions listed are Auctions that have the status of either CANCELLED or ENDED (I.e., no longer ONGOING)." ></Tooltip></div>
                 <hr className="border-slate-400 pb-4" />
-
                 {this.state.userExpiredAuctions === null || this.state.userExpiredAuctions.length == 0 ? <p>None of your created Auctions have expired yet.</p> : (
                     this.state.userExpiredAuctions.map((auction, idx) => (
                         <div key={idx}>
                             <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userExpiredAuctionIds[this.state.userExpiredAuctions.indexOf(auction)] + 1 } }}>
-
                                 <a><span className="pl-2 border flex bg-red-200 font-semibold">Auction Contract: {auction}</span>
                                     <AuctionPreview web3={this.state.web3Provider} id={this.state.userExpiredAuctionIds[this.state.userExpiredAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a>
+                            </Link>
+                        </div>
+                    ))
+                )}
+
+                <div className="text-2xl font-bold pt-10 pb-4 flex"> Auctions you have purchased <Tooltip header="Purchased Auctions" message="Purchased Auctions are listed if you are the purchaser." ></Tooltip></div>
+                <hr className="border-slate-400 pb-4" />
+                {this.state.userPurchasedAuctions === null || this.state.userPurchasedAuctions.length == 0 ? <p>No Auctions purchased yet.</p> : (
+                    this.state.userPurchasedAuctions.map((auction, idx) => (
+                        <div key={idx}>
+                            <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userPurchasedAuctionIds[this.state.userPurchasedAuctions.indexOf(auction)] + 1 } }}>
+                                <a><span className="pl-2 border flex bg-yellow-300 font-semibold">Auction Contract: {auction}</span>
+                                    <AuctionPreview web3={this.state.web3Provider} id={this.state.userPurchasedAuctionIds[this.state.userPurchasedAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a>
                             </Link>
                         </div>
                     ))
