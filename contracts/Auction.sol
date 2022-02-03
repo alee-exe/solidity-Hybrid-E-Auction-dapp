@@ -141,7 +141,7 @@ contract Auction {
         }
 
         numberOfTotalBids++;
-        emit bidEvent(highestBidder, highestBid);
+        emit bidEvent(_bidder, msg.value);
         return true;
     }
 
@@ -202,5 +202,5 @@ contract Auction {
         return auctionStatus;
     }
 
-    event bidEvent(address indexed highestBidder, uint256 highestBid);
+    event bidEvent(address indexed bidder, uint256 bidValue);
 }

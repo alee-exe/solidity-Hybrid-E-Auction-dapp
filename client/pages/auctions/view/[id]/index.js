@@ -104,6 +104,7 @@ export default withRouter(class Home extends Component {
                 this.updateNumberOfTotalBids();
             }, 1000);
 
+            this.listenToBidEvents(0);
         } catch (error) {
             console.log(error);
         };
@@ -188,55 +189,65 @@ export default withRouter(class Home extends Component {
 
         await contract.methods.placeBid(auctionId).send({ from: userAccount, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 200000 }).then(async (response) => {
             if (response) {
+                console.log(response);
                 const bidAlert = <Alert type="success">Successfully placed Bid!</Alert>;
                 this.setState({ bidAlert });
-                this.onLogBidEvent();
             };
         }).catch((error) => {
             if (error) {
+                console.log(error);
                 const bidAlert = <Alert type="danger">Error: Could not place Bid. See console for more details.</Alert>;
                 this.setState({ bidAlert });
             };
         });
     }
 
-    onLogBidEvent = async () => {
-        const { auctionContract, web3Provider, auctionTypeIsPrivate } = this.state;
-        console.log("Registered user bid event.");
+    listenToBidEvents(fromBlockNumber) {
+        const { auctionContract } = this.state;
+        console.log('Listening for Bid Events');
+        auctionContract.events.bidEvent({ fromBlock: fromBlockNumber || 0 }, this.bidEventListener);
+    }
 
-        await auctionContract.events.bidEvent({ fromBlock: 'latest' })
-            .on("error", (error) => {
-                console.log(error);
-            })
-            .on("data", async (event) => {
-                console.log("Creating bid event log message.");
-                const userAddress = event.returnValues[0];
-                const bidAmount = web3Provider.utils.fromWei(event.returnValues[1], 'ether');
-                const transactionHash = event['transactionHash'];
-                // const auctionAddress = event['address'];
-                let bidEventLog = null;
+    bidEventListener(error, BidEvent) {
+        if (error) {
+            console.log("Bid Event Listener Error", error);
+            return null;
+        }
 
-                if (auctionTypeIsPrivate) {
-                    // If private hide bidding amount
-                    bidEventLog = "<span class='font-bold'>New Bid from User Address: </span>" + userAddress + ". <br> <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + " on " + convertTimestampToDate(Math.floor(Date.now() / 1000)) + ".";
-                } else {
-                    bidEventLog = "<span class='font-bold'>New Bid from User Address: </span>" + userAddress + " at " + bidAmount + " ETH. <br> <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + " on " + convertTimestampToDate(Math.floor(Date.now() / 1000)) + ".";
+        const {
+            returnValues,
+            blockNumber,
+            transactionHash
+        } = BidEvent;
+
+        const {
+            bidder,
+            bidValue
+        } = returnValues;
+
+        const div = document.querySelector('#auctionEventLogs > div');
+
+        // Private Auction should not display any bid events
+        if (div !== null || undefined) {
+            if (div.hasChildNodes()) {
+                // Prevent bid event log dupes by checking the latest bid event block number
+                if (!div.childNodes[1].innerHTML.includes("block #" + blockNumber)) {
+                    const p = document.createElement('p');
+                    p.innerHTML = "<span class='font-bold'>New Bid from User Address: </span>" + bidder + " at " + bidValue + " wei <i>(block #" + blockNumber + ")</i>. <br/><span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + ".";
+                    const hr = document.createElement('hr');
+                    hr.className = "mb-4 mt-4"
+                    div.insertBefore(p, div.firstChild);
+                    div.insertBefore(hr, div.firstChild);
                 }
-
-                // Prevent duplicate logs
-                if (this.state.bidEventLog !== bidEventLog) {
-                    console.log("Detected new bid log event message.");
-                    // let eventMessage = document.createElement("p");
-                    // eventMessage.innerText = bidEventLog;
-                    // let horizontalRuler = document.createElement("hr");
-                    // document.getElementById("auctionEventLogs").append(eventMessage);
-                    // document.getElementById("auctionEventLogs").append(horizontalRuler);
-
-                    document.getElementById("singleAuctionEventLog").innerHTML = bidEventLog;
-
-                    this.setState({ bidEventLog });
-                };
-            });
+            } else {
+                const p = document.createElement('p');
+                p.innerHTML = "<span class='font-bold'>New Bid from User Address: </span>" + bidder + " at " + bidValue + " wei <i>(block #" + blockNumber + ")</i>. <br/><span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + ".";
+                const hr = document.createElement('hr');
+                hr.className = "mb-4 mt-4"
+                div.insertBefore(p, div.firstChild);
+                div.insertBefore(hr, div.firstChild);
+            }
+        }
     }
 
     handleBidValue = (event) => {
@@ -300,7 +311,7 @@ export default withRouter(class Home extends Component {
         event.preventDefault();
         const { contract, userAccount, auctionId, web3Provider, sellingPrice } = this.state;
 
-        await contract.methods.buyAuction(auctionId).send({ from: userAccount, value: web3Provider.utils.toWei(sellingPrice, 'ether'), gas: 200000 }).then(async(response) => {
+        await contract.methods.buyAuction(auctionId).send({ from: userAccount, value: web3Provider.utils.toWei(sellingPrice, 'ether'), gas: 200000 }).then(async (response) => {
             if (response) {
                 const bidAlert = <Alert type="success">Successfully purchased Auction!</Alert>;
                 this.setState({ bidAlert });
@@ -350,7 +361,7 @@ export default withRouter(class Home extends Component {
 
                     <p className="pb-3"><span className="font-bold">Auction Owner (Address): </span>{this.state.owner}</p>
                     <p className="pb-3"><span className="font-bold">Auction Contract (Address): </span>{this.state.auctionAddress}</p>
-                    <p className="pb-3"><span className="font-bold">Auction End Date: </span>{this.state.endBlockTimeStamp === null || this.state.auctionStatus === null ? null : (<span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {this.state.auctionStatus != 1 ? (enumStatus(this.state.auctionStatus)): (convertTimestampToDate(this.state.auctionTimer, "time"))})</span>)}</p>
+                    <p className="pb-3"><span className="font-bold">Auction End Date: </span>{this.state.endBlockTimeStamp === null || this.state.auctionStatus === null ? null : (<span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {this.state.auctionStatus != 1 ? (enumStatus(this.state.auctionStatus)) : (convertTimestampToDate(this.state.auctionTimer, "time"))})</span>)}</p>
 
                     <p className="pb-3"><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>
                     <p className="pb-3"><span className="font-bold">Auction Type: </span>{this.state.auctionTypeIsPrivate === null ? null : (checkAuctionType(this.state.auctionTypeIsPrivate))}</p>
@@ -409,10 +420,10 @@ export default withRouter(class Home extends Component {
                 <div id="auctionEventLogs" className="mt-4 card border w-8/12 mr-4 bg-slate-50">
                     <p className="mb-2 text-xl">Auction Event Logs</p>
                     <hr className="pb-4 border-slate-400" />
-                    <p id="singleAuctionEventLog"></p>
+                    {this.state.auctionTypeIsPrivate ? (<p className="italic text-lg">Auction Type is Private - No Bid Events Shown</p>) : (<div></div>)}
                 </div>
 
-                <div id="auctionOwnerOperations" className="mt-4 card border w-4/12 bg-slate-50">
+                <div id="auctionOwnerOperations" className="mt-4 card border w-4/12 bg-slate-50 h-min">
                     <div className="mb-2 text-xl flex"><p className="mr-1">Auction Owner Operations</p><Tooltip header="Auction Owner Operations" message="Only the Contract Owner of this Auction can perform these operations." ></Tooltip></div>
                     <hr className="pb-4 border-slate-400" />
                     <div className="flex">
