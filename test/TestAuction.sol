@@ -15,6 +15,11 @@ contract TestAuction {
         Assert.equal(returnedOwner, address(0x3d6f78575b3E70a45dC7ddb1fd89F12C7b0E7ed8), "Owner address should match.");
     }
 
+     function testAuctionGetOwnerContactDetails() public {
+        string memory returnedOwnerContactDetails = auction.ownerContactDetails();
+        Assert.equal(returnedOwnerContactDetails, string("Tel: 123123, Email: placeholder@email.com"), "Owner Contact Details should match.");
+    }
+
     function testAuctionGetEndBlockTimeStamp() public {
         uint256 returnedStartBlockTimeStamp = auction.startBlockTimeStamp();
         uint256 returnedEndBlockTimeStamp = auction.endBlockTimeStamp();
@@ -48,7 +53,7 @@ contract TestAuction {
         Assert.equal(returnedItemName, string("Porsche 911"), "Item Name should match.");
         Assert.equal(returnedItemCondition, string("Used"), "Item Condition should match.");
         Assert.equal(returnedItemDescription, string("Full Porsche Hatfield service history, 40.670 miles."), "Item Description should match.");
-        Assert.equal(returnedItemIpfsHash, string("Placeholder"), "Item Ipfs Hash should match.");
+        Assert.equal(returnedItemIpfsHash, string("Ipfs Image Hash Placeholder"), "Item Ipfs Image Hash should match.");
     }
 
 }

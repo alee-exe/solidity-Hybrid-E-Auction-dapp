@@ -6,6 +6,8 @@ contract Auction {
 
     // Store's the auction owner = contract owner
     address public owner;
+    // Owner contact details
+    string public ownerContactDetails;
     // Auction start and end times (since unix epoch in seconds)
     uint256 public startBlockTimeStamp;
     uint256 public endBlockTimeStamp;
@@ -23,7 +25,7 @@ contract Auction {
     bool public isPrivate;
     // Track number of total bids
     uint256 public numberOfTotalBids;
-    //If Auction Item is purchased
+    // If Auction Item is purchased
     address public purchaser;
 
     // Auction states
@@ -49,6 +51,7 @@ contract Auction {
 
     constructor(
         address _owner,
+        string memory _ownerContactDetails,
         uint256 _biddingTime,
         uint256 _sellingPrice,
         uint256 _startingBid,
@@ -60,6 +63,7 @@ contract Auction {
         string memory _ipfsImageHash
     ) {
         owner = _owner;
+        ownerContactDetails = _ownerContactDetails;
         startBlockTimeStamp = block.timestamp;
         // time is in hours
         endBlockTimeStamp = startBlockTimeStamp + (_biddingTime * 1 hours);

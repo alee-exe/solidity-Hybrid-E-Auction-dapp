@@ -6,14 +6,9 @@ import "./Auction.sol";
 contract AuctionListing {
     // Hold all auction objects
     Auction[] public listedAuctions;
-    address public owner;
-
-    constructor() {
-        // The deployer of this smart contract becomes owner
-        owner = msg.sender;
-    }
-
+    
     function createAuction(
+        string memory _ownerContactDetails,
         uint256 _biddingTime,
         uint256 _sellingPrice,
         uint256 _startingBid,
@@ -26,6 +21,7 @@ contract AuctionListing {
     ) public {
         Auction createdAuction = new Auction(
             msg.sender,
+            _ownerContactDetails,
             _biddingTime,
             _sellingPrice,
             _startingBid,
@@ -70,6 +66,10 @@ contract AuctionListing {
 
     function getOwner(uint _i) public view returns (address) {
         return listedAuctions[_i].owner();
+    }
+
+    function getOwnerContactDetails(uint _i) public view returns (string memory) {
+        return listedAuctions[_i].ownerContactDetails();
     }
 
     function getStartBlockTimeStamp(uint _i) public view returns (uint256) {

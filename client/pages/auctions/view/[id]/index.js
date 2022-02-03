@@ -21,6 +21,7 @@ export default withRouter(class Home extends Component {
         auctionContract: null,
         auctionAddress: null,
         owner: null,
+        ownerContactDetails: null,
         startingBid: null,
         bidIncrement: null,
         sellingPrice: null,
@@ -62,6 +63,7 @@ export default withRouter(class Home extends Component {
             const auctionContract = new web3.eth.Contract(Auction['abi'], auctionAddress);
 
             const owner = await contract.methods.getOwner(id).call();
+            const ownerContactDetails = await contract.methods.getOwnerContactDetails(id).call();
             const startBlockTimeStamp = await contract.methods.getStartBlockTimeStamp(id).call();
             const endBlockTimeStamp = await contract.methods.getEndBlockTimeStamp(id).call();
             const highestBid = web3.utils.fromWei(await contract.methods.getHighestBid(id).call(), 'ether');
@@ -84,7 +86,7 @@ export default withRouter(class Home extends Component {
             const userCurrentBid = web3.utils.fromWei(await contract.methods.getUserCurrentBid(id, userAccount).call(), 'ether');
             const totalNumberOfBids = await contract.methods.getTotalNumberOfBids(id).call();
 
-            this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userCurrentBid, totalNumberOfBids, owner, startingBid, bidIncrement, sellingPrice, auctionTypeIsPrivate, auctionPurchaser, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid, auctionStatus, auctionTimer, auctionId: id });
+            this.setState({ web3Provider: web3, contract, auctionContract, auctionAddress, userAccount, userCurrentBid, totalNumberOfBids, owner, ownerContactDetails, startingBid, bidIncrement, sellingPrice, auctionTypeIsPrivate, auctionPurchaser, itemName, itemCondition, itemDescription, ipfsImageHash, startBlockTimeStamp, endBlockTimeStamp, highestBidder, highestBid, auctionStatus, auctionTimer, auctionId: id });
 
             this.intervalAuctionTimer = setInterval(() => this.setState({ auctionTimer: (endBlockTimeStamp - (Math.floor(Date.now() / 1000))) }), 1000);
 
@@ -408,6 +410,7 @@ export default withRouter(class Home extends Component {
                     <p className="text-lg pb-3">{this.state.itemCondition === null ? (<span>&nbsp;</span>) : (<span>&quot;{this.state.itemCondition}&quot;</span>)}</p>
 
                     <p className="pb-3"><span className="font-bold">Auction Owner (Address): </span>{this.state.owner}</p>
+                    <p className="pb-3"><span className="font-bold">Auction Owner Contact Details: </span>{this.state.ownerContactDetails}</p>
                     <p className="pb-3"><span className="font-bold">Auction Contract (Address): </span>{this.state.auctionAddress}</p>
                     <p className="pb-3"><span className="font-bold">Auction End Date: </span>{this.state.endBlockTimeStamp === null || this.state.auctionStatus === null ? null : (<span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {this.state.auctionStatus != 1 ? (enumStatus(this.state.auctionStatus)) : (convertTimestampToDate(this.state.auctionTimer, "time"))})</span>)}</p>
 

@@ -22,7 +22,7 @@ export default function CreateAuctionPage() {
         const contract = new web3.eth.Contract(AuctionListing['abi'], contractAddress);
         const userAddresses = await web3.eth.getAccounts();
 
-        const { itemName, itemDescription, itemCondition, auctionDuration, auctionSellingPrice, auctionBidIncrement, auctionStartingBid, auctionIsPrivate } = formField;
+        let { itemName, itemDescription, itemCondition, ownerContactDetails, auctionDuration, auctionSellingPrice, auctionBidIncrement, auctionStartingBid, auctionIsPrivate } = formField;
 
         if (auctionSellingPrice === undefined) {
             auctionSellingPrice = "0";
@@ -40,7 +40,7 @@ export default function CreateAuctionPage() {
         auctionBidIncrement = web3.utils.toWei(auctionBidIncrement, 'ether');
         auctionStartingBid = web3.utils.toWei(auctionStartingBid, 'ether');
 
-        contract.methods.createAuction(auctionDuration, auctionSellingPrice, auctionBidIncrement, auctionStartingBid, auctionIsPrivate, itemName, itemDescription, itemCondition, ipfsImageHash).send({ from: userAddresses[0] }).then(async (response, error) => {
+        contract.methods.createAuction(ownerContactDetails, auctionDuration, auctionSellingPrice, auctionBidIncrement, auctionStartingBid, auctionIsPrivate, itemName, itemDescription, itemCondition, ipfsImageHash).send({ from: userAddresses[0] }).then(async (response, error) => {
             if (!error) {
                 console.log(response);
                 setSubmitAlert(<Alert type="success">Successfully created Auction!</Alert>);
@@ -78,6 +78,10 @@ export default function CreateAuctionPage() {
                     <input placeholder="Insert Item Condition" className="mt-1 border rounded p-2 mb-3" onChange={event => updateFormField({ ...formField, itemCondition: event.target.value })} required />
                     <div className="flex">Item Image: <Tooltip header="Item Image" message="Provide an image file of your item. Only accepts image file types such as JPEG, PNG, GIF etc. Limited to 50 characters maximum." ></Tooltip></div>
                     <input type="file" accept="image/*" name="Upload Image" className="mt-1 border rounded p-2 mb-8" onChange={handleImageFile} required />
+
+                    <h1 className="pb-3 font-bold">Your Contact Information</h1>
+                    <div className="flex">Contact Details: <Tooltip maxLength="100" header="Contact Details" message="Provide your contact information such as telephone or email for the deliverance of promised goods. Limited to 100 characters maximum." ></Tooltip></div>
+                    <input placeholder="E.g, Tel: 123123, Email: placeholder@email.com" className="mt-1 border rounded p-2 mb-8" onChange={event => updateFormField({ ...formField, ownerContactDetails: event.target.value })} required />
 
                     <h1 className="pb-3 font-bold">Auction Properties</h1>
                     <div className="flex">Auction Duration (in Hours): <Tooltip header="Auction Duration" message="Specify the auction duration (i.e., the countdown duration for the auction timer) in hours." ></Tooltip></div>

@@ -53,7 +53,7 @@ module.exports = {
       provider: () => new HDWalletProvider("genuine neither side grid swap vacuum sudden canyon ability initial ceiling outdoor",`https://ropsten.infura.io/v3/0e2fb27d75584ef3a06261da76889cdf`),
       network_id: 3,
       gas: 6000000,
-      timeoutBlocks: 100
+      timeoutBlocks: 100,
     }
     // Another network with more advanced options...
     // advanced: {

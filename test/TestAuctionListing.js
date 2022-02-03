@@ -18,24 +18,25 @@ beforeEach(async () => {
     userAddresses = await web3Provider.eth.getAccounts();
     userAccount = userAddresses[0];
 
-    // Firstly deploy AuctionListing contract - using the default gas price and fee values in Truffle console (otherwise base fee exceeds gas limit)
-    contract = await new web3Provider.eth.Contract(abi).deploy({ data: bytecode }).send({ from: userAccount, gas: 4712388, gasPrice: 100000000000 });
+    // Firstly deploy the AuctionListing contract - using the default gas price and fee values in Truffle console (otherwise base fee exceeds gas limit)
+    contract = await new web3Provider.eth.Contract(abi).deploy({ data: bytecode }).send({ from: userAccount, gas: 5712388, gasPrice: 100000000000 });
+
+    const setOwnerContactDetails = "Contact Details";
 
     const setAuctionDuration = 24;
     const setAuctionSellingPrice = web3Provider.utils.toWei('10', 'ether');
     const setAuctionBidIncrement = web3Provider.utils.toWei('2', 'ether');
     const setAuctionStartingBid = web3Provider.utils.toWei('1', 'ether');
 
-    // const setAuctionTypeIsPrivate = false;
     const setItemName = "Item Name";
     const setItemDescription = "Item Description";
     const setItemCondition = "Item Condition";
     const setIpfsImageHash = "Item Image Ipfs Hash";
 
     // Then create a single public Auction with its id being 0 (as listing is zero-based for its index)
-    contract.methods.createAuction(setAuctionDuration, setAuctionSellingPrice, setAuctionBidIncrement, setAuctionStartingBid, false, setItemName, setItemDescription, setItemCondition, setIpfsImageHash).send({ from: userAccount, gas: 4712388, gasPrice: 100000000000 });
+    contract.methods.createAuction(setOwnerContactDetails, setAuctionDuration, setAuctionSellingPrice, setAuctionBidIncrement, setAuctionStartingBid, false, setItemName, setItemDescription, setItemCondition, setIpfsImageHash).send({ from: userAccount, gas: 4712388, gasPrice: 100000000000 });
     // Likewise, create a single private Auction with its id being 1
-    contract.methods.createAuction(setAuctionDuration, setAuctionSellingPrice, setAuctionBidIncrement, setAuctionStartingBid, true, setItemName, setItemDescription, setItemCondition, setIpfsImageHash).send({ from: userAccount, gas: 4712388, gasPrice: 100000000000 });
+    contract.methods.createAuction(setOwnerContactDetails, setAuctionDuration, setAuctionSellingPrice, setAuctionBidIncrement, setAuctionStartingBid, true, setItemName, setItemDescription, setItemCondition, setIpfsImageHash).send({ from: userAccount, gas: 4712388, gasPrice: 100000000000 });
 });
 
 describe('AuctionListing Deployed', () => {
@@ -61,7 +62,14 @@ describe('Smart Contract Paid Gas Fees', () => {
 describe('Get Contract Owner', () => {
     it('check owner exists and is matching', async () => {
         const returnedOwner = await contract.methods.getOwner(id).call();
-        assert.equal(userAccount, returnedOwner, "User Account should match.");
+        assert.equal(returnedOwner, userAccount, "User Account should match.");
+    })
+});
+
+describe('Get Contract Owner Contact Details', () => {
+    it('check owner contact details exists and is matching', async () => {
+        const returnedOwnerContactDetails = await contract.methods.getOwnerContactDetails(id).call();
+        assert.equal(returnedOwnerContactDetails, "Contact Details", "Owner Contact Details should match.");
     })
 });
 
