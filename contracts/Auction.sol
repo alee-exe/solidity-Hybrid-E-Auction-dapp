@@ -160,6 +160,10 @@ contract Auction {
 
     function withdrawBid(address _bidder) public is_expired only_bidder(_bidder) returns (bool) {
         require(trackAllBids[_bidder] > 0, "You've already withdrawn from this Auction.");
+
+        if (auctionStatus == STATE.ENDED) {
+            require(_bidder != highestBidder, "Highest Bidder cannot withdraw from won Auction!");
+        }
       
         uint256 amount = trackAllBids[_bidder];
         trackAllBids[_bidder] = 0;

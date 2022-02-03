@@ -433,7 +433,7 @@ export default withRouter(class Home extends Component {
                     <p className="mb-2 text-xl">Auction Bids</p>
                     <hr className="pb-4 border-slate-400" />
                     <p><span className="font-bold">Your Current Bid: </span>{this.state.userCurrentBid === null ? null : (<span>{this.state.userCurrentBid} ETH</span>)}</p>
-                    {this.state.auctionTypeIsPrivate === null ? null : (this.state.auctionTypeIsPrivate ? null : (<div><p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p> <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid} ETH</p></div>))}
+                    {this.state.auctionTypeIsPrivate === null ? null : (this.state.auctionStatus === null ? null : (this.state.auctionTypeIsPrivate && this.state.auctionStatus == 1 ? null : (this.state.auctionStatus == 2 ? (<div><p><span className="font-bold">Winning Bidder (Address): </span>{this.state.highestBidder}</p> <p><span className="font-bold">Winning Highest Bid: </span>{this.state.highestBid} ETH</p></div>) : (<div><p><span className="font-bold">Current Highest Bidder (Address): </span>{this.state.highestBidder}</p> <p><span className="font-bold">Current Highest Bid: </span>{this.state.highestBid} ETH</p></div>))))}
                     <p className="mt-2"><span className="font-bold">Total Number of Bids in this Auction: </span>{this.state.totalNumberOfBids}</p>
                 </div>
 
@@ -471,7 +471,7 @@ export default withRouter(class Home extends Component {
                 <div id="auctionEventLogs" className="mt-4 card border w-8/12 mr-4 bg-slate-50">
                     <p className="mb-2 text-xl">Auction Event Logs</p>
                     <hr className="pb-4 border-slate-400" />
-                    {this.state.auctionTypeIsPrivate ? (<p className="italic text-lg">Auction Type is Private - No Bid Events Shown</p>) : (<div></div>)}
+                    {this.state.auctionTypeIsPrivate && this.state.auctionStatus == 1 ? (<p className="italic text-lg">Auction Type is Private - No Bid Events Shown</p>) : (<div></div>)}
                 </div>
 
                 <div id="auctionOwnerOperations" className="mt-4 card border w-4/12 bg-slate-50 h-min">
