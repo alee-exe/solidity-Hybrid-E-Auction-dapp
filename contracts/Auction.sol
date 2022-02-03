@@ -163,13 +163,14 @@ contract Auction {
         return true;
     }
 
-     function buyAuction(address _bidder) public payable is_ongoing only_bidder(_bidder) returns (Auction.STATE) {
+     function buyAuction(address _bidder) public payable is_ongoing only_bidder(_bidder) returns (STATE) {
         require(sellingPrice > 0, "Auction Price must be greater than 0 ETH to buy.");
         require(msg.value == sellingPrice, "Sent ETH value must be equal to Selling Price.");
 
         auctionStatus = STATE.SOLD;
         purchaser = _bidder;
         payable(owner).transfer(msg.value);
+        emit stateEvent(purchaser, auctionStatus);
         return auctionStatus;
     }
 
@@ -187,8 +188,9 @@ contract Auction {
         return true;
     }
 
-      function endAuction() public is_ongoing returns (STATE) {
+    function endAuction(address _user) public is_ongoing returns (STATE) {
         auctionStatus = STATE.ENDED;
+        emit stateEvent(_user, auctionStatus);
         return auctionStatus;
     }
 
@@ -199,8 +201,10 @@ contract Auction {
         returns (STATE)
     {
         auctionStatus = STATE.CANCELLED;
+        emit stateEvent(owner, auctionStatus);
         return auctionStatus;
     }
 
     event bidEvent(address indexed bidder, uint256 bidValue);
+    event stateEvent(address indexed caller, STATE auctionStatus);
 }

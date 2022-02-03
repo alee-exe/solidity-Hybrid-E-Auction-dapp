@@ -105,6 +105,7 @@ export default withRouter(class Home extends Component {
             }, 1000);
 
             this.listenToBidEvents(0);
+            this.listenToStateEvents(0);
         } catch (error) {
             console.log(error);
         };
@@ -249,6 +250,53 @@ export default withRouter(class Home extends Component {
             }
         }
     }
+
+    listenToStateEvents(fromBlockNumber) {
+        const { auctionContract } = this.state;
+        console.log('Listening for State Events');
+        auctionContract.events.stateEvent({ fromBlock: fromBlockNumber || 0 }, this.stateEventListener);
+    }
+
+    stateEventListener(error, StateEvent) {
+        if (error) {
+            console.log("State Event Listener Error", error);
+            return null;
+        }
+
+        const {
+            returnValues,
+            blockNumber,
+            transactionHash
+        } = StateEvent;
+
+        const {
+            caller,
+            auctionStatus
+        } = returnValues;
+
+        const div = document.querySelector('#auctionEventLogs > div');
+
+        if (div !== null || undefined) {
+            if (div.hasChildNodes()) {
+                if (!div.childNodes[1].innerHTML.includes("block #" + blockNumber)) {
+                    const p = document.createElement('p');
+                    p.innerHTML = "<span class='font-bold'>Auction State has been changed to " + enumStatus(auctionStatus) + "</span> <i>(block #" + blockNumber + ")</i>. <br/><span class='font-bold'>Invoked by User Address: </span>" + caller + "<br/> <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + ".";
+                    const hr = document.createElement('hr');
+                    hr.className = "mb-4 mt-4"
+                    div.insertBefore(p, div.firstChild);
+                    div.insertBefore(hr, div.firstChild);
+                }
+            } else {
+                const p = document.createElement('p');
+                p.innerHTML = "<span class='font-bold'>Auction State has been changed to " + enumStatus(auctionStatus) + "</span> <i>(block #" + blockNumber + ")</i>. <br/><span class='font-bold'>Invoked by User Address: </span>" + caller + "<br/> <span class='font-bold'>Transaction (TX) Hash at: </span>" + transactionHash + ".";
+                const hr = document.createElement('hr');
+                hr.className = "mb-4 mt-4"
+                div.insertBefore(p, div.firstChild);
+                div.insertBefore(hr, div.firstChild);
+            }
+        }
+    }
+
 
     handleBidValue = (event) => {
         this.setState({ bidValue: event.target.value });

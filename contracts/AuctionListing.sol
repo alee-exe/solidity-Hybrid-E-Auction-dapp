@@ -6,8 +6,12 @@ import "./Auction.sol";
 contract AuctionListing {
     // Hold all auction objects
     Auction[] public listedAuctions;
+    address public owner;
 
-    event AuctionCreated(address owner, uint256 totalAuctions);
+    constructor() {
+        // The deployer of this smart contract becomes owner
+        owner = msg.sender;
+    }
 
     function createAuction(
         uint256 _biddingTime,
@@ -34,7 +38,6 @@ contract AuctionListing {
         );
 
         listedAuctions.push(createdAuction);
-        emit AuctionCreated(msg.sender, listedAuctions.length);
     }
 
     function placeBid(uint _i) public payable returns (bool) {
@@ -54,7 +57,7 @@ contract AuctionListing {
     }
 
     function endAuction(uint _i) public returns (Auction.STATE) {
-        return listedAuctions[_i].endAuction();
+        return listedAuctions[_i].endAuction(msg.sender);
     }
 
      function cancelAuction(uint _i) public returns (Auction.STATE) {
