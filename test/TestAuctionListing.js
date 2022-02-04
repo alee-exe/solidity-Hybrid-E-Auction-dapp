@@ -55,7 +55,7 @@ describe('Auction Deployed', () => {
 describe('Smart Contract Paid Gas Fees', () => {
     it('transaction paid for initial and subsequent deployment', async () => {
         const returnedUserWalletBalance = web3Provider.utils.fromWei(await web3Provider.eth.getBalance(userAccount), 'ether');
-        assert.equal(returnedUserWalletBalance < 100, true, "User Account Balance should contain less than default 100 Ether (as contract is deployed).");
+        assert.equal(returnedUserWalletBalance < 100, true, "User Account Balance should contain less than default 100 Ether (as contract is now deployed).");
     })
 });
 
@@ -210,6 +210,7 @@ describe('Simulate Bid Transaction', () => {
         assert.equal(message, "success", "User placing bid should be successful.");
     })
 
+
     it('check the highest bid can be modified and updated', async () => {
         const bidder = userAddresses[1];
         // Bid 3 Ether
@@ -219,6 +220,7 @@ describe('Simulate Bid Transaction', () => {
         const returnedHighestBid = web3Provider.utils.fromWei(await contract.methods.getHighestBid(id).call(), 'ether');
         assert.equal(returnedHighestBid, 3, "Updated highest bid should be greater than 0.");
     })
+
 
     it('check the highest bidder can be modified and updated', async () => {
         const bidder = userAddresses[1];
@@ -230,6 +232,7 @@ describe('Simulate Bid Transaction', () => {
         assert.equal(returnedHighestBidder !== 0x0000000000000000000000000000000000000000, true, "Updated highest bidder should not be the default address.");
     })
 
+
     it('check the user current bid can be modified and updated', async () => {
         const bidder = userAddresses[1];
         // Bid 3 Ether
@@ -239,6 +242,7 @@ describe('Simulate Bid Transaction', () => {
         const returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
         assert.equal(returnedUserCurrentBid, 3, "Updated user current bid should be greater than 0.");
     })
+
 
     it('check the total number of bids can be modified and updated', async () => {
         const bidder = userAddresses[1];
@@ -252,9 +256,10 @@ describe('Simulate Bid Transaction', () => {
 });
 
 describe('Owner should not be able to bid in their own Auction', () => {
-    it('place bid using owner account', async () => {
+    it('cannot place bid using owner account', async () => {
         // Bid 3 Ether
         const bidValue = '3';
+        // Owner attempts to place bid in their own Auction
         await contract.methods.placeBid(id).send({ from: userAccount, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
             if (response) {
                 throw null;
@@ -262,18 +267,18 @@ describe('Owner should not be able to bid in their own Auction', () => {
         }).catch((error) => {
             assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
         });
-    });
+    })
 });
 
 describe('New bid must be greater than previous bid', () => {
-    it('place new bid with the same value as previously (PRIVATE)', async () => {
-        const bidder = userAddresses[2];
+    it('cannot place new bid with the same value as previously (PRIVATE)', async () => {
+        const bidder = userAddresses[1];
         const privateId = 1;
         // Bid 3 Ether
         const bidValue = '3';
         // First bid
         await contract.methods.placeBid(privateId).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
-        // Second bid with same value
+        // Second bid with same value as first bid
         await contract.methods.placeBid(privateId).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
             if (response) {
                 throw null;
@@ -281,15 +286,16 @@ describe('New bid must be greater than previous bid', () => {
         }).catch((error) => {
             assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
         });
-    });
+    })
 
-    it('place new bid with the same value as previously (PUBLIC)', async () => {
+
+    it('cannot place new bid with the same value as previously (PUBLIC)', async () => {
         const bidder = userAddresses[1];
         // Bid 3 Ether
         const bidValue = '3';
         // First bid
         await contract.methods.placeBid(id).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
-        // Second bid with same value
+        // Second bid with same value as first bid
         await contract.methods.placeBid(id).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
             if (response) {
                 throw null;
@@ -297,7 +303,7 @@ describe('New bid must be greater than previous bid', () => {
         }).catch((error) => {
             assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
         });
-    });
+    })
 });
 
 describe('Verify conditional Auction Type on Bidding', () => {
@@ -317,7 +323,8 @@ describe('Verify conditional Auction Type on Bidding', () => {
 
         const returnedUserCurrentBid2 = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(privateId, bidder2).call(), 'ether');
         assert.equal(returnedUserCurrentBid2, 3, "User current bid should be greater than 0.");
-    });
+    })
+
 
     it('new bid cannot be equal to current highest bid (PUBLIC)', async () => {
         const bidder1 = userAddresses[1];
@@ -334,32 +341,54 @@ describe('Verify conditional Auction Type on Bidding', () => {
         }).catch((error) => {
             assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
         });
-
-    });
+    })
 });
 
-describe('Verify conditional bid increment on Bidding', () => {
+describe('Verify conditional Bid Increment on Bidding', () => {
     it('new bid must be greater or equal to current bid and bid increment (PRIVATE)', async () => {
-        const bidder1 = userAddresses[1];
+        const bidder = userAddresses[1];
         const privateId = 1;
+        let message = null;
 
-        await contract.methods.placeBid(privateId).send({ from: bidder1, value: web3Provider.utils.toWei('2', 'ether'), gas: 4712388, gasPrice: 100000000000 });
-        // Bid must be greater or equal to 2 + 2
-        await contract.methods.placeBid(privateId).send({ from: bidder1, value: web3Provider.utils.toWei('1', 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+        await contract.methods.placeBid(privateId).send({ from: bidder, value: web3Provider.utils.toWei('2', 'ether'), gas: 4712388, gasPrice: 100000000000 });
+        // New bid must be greater or equal to Bidder's Current Bid + Bid Increment (2 + 2)
+        // Same bidder attempts to bid a lesser bid value than previously
+        await contract.methods.placeBid(privateId).send({ from: bidder, value: web3Provider.utils.toWei('1', 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
             if (response) {
                 throw null;
             };
         }).catch((error) => {
             assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
         });
-    });
+
+        // User current bid should be the same value as the first bid (as next bid failed)
+        let returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(privateId, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 2, "User current bid be the same as the first bid.");
+
+        // Bids again with the appropriate values
+        await contract.methods.placeBid(privateId).send({ from: bidder, value: web3Provider.utils.toWei('4', 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+            if (response) {
+                message = "success";
+            };
+        }).catch((error) => {
+            if (error) {
+                message = "error";
+            };
+        });
+
+        assert.equal(message, "success", "New bid with appropriate values should be able to be placed.");
+        returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(privateId, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 4, "User current bid should be greater than first bid.");
+    })
+
 
     it('new bid must be greater or equal to highest bid and bid increment (PUBLIC)', async () => {
         const bidder1 = userAddresses[1];
         const bidder2 = userAddresses[2];
 
         await contract.methods.placeBid(id).send({ from: bidder1, value: web3Provider.utils.toWei('2', 'ether'), gas: 4712388, gasPrice: 100000000000 });
-        // Bid must be greater or equal to 2 + 2
+        // New bid must be greater or equal to Highest Current Bid + Bid Increment (2 + 2)
+        // Second bidder attempts to bid a lesser value than first bidder
         await contract.methods.placeBid(id).send({ from: bidder2, value: web3Provider.utils.toWei('1', 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
             if (response) {
                 throw null;
@@ -367,7 +396,29 @@ describe('Verify conditional bid increment on Bidding', () => {
         }).catch((error) => {
             assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
         });
-    });
+
+        // First bidder should have a single bid with a value of 2
+        let returnedUserCurrentBid1 = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder1).call(), 'ether');
+        assert.equal(returnedUserCurrentBid1, 2, "User current bid be greater than 0.");
+        // Second bidder should have no bids
+        let returnedUserCurrentBid2 = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder2).call(), 'ether');
+        assert.equal(returnedUserCurrentBid2, 0, "User current bid should be equal to 0.");
+
+        // Second bidder bids again with the appropriate values
+        await contract.methods.placeBid(id).send({ from: bidder2, value: web3Provider.utils.toWei('4', 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+            if (response) {
+                message = "success";
+            };
+        }).catch((error) => {
+            if (error) {
+                message = "error";
+            };
+        });
+
+        assert.equal(message, "success", "New bid with appropriate values should be able to be placed.");
+        returnedUserCurrentBid2 = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder2).call(), 'ether');
+        assert.equal(returnedUserCurrentBid2, 4, "User current bid should be greater than 0.");
+    })
 });
 
 describe('Simulate Auction Cancellation', () => {
@@ -387,6 +438,33 @@ describe('Simulate Auction Cancellation', () => {
 
         assert.equal(message, "success", "Auction should be able to be cancelled.");
     })
+
+
+    it('Auction status cannot change once set to CANCELLED', async () => {
+        const bidder = userAddresses[1];
+
+        // Owner cancels Auction
+        await contract.methods.cancelAuction(id).send({ from: userAccount });
+
+        // Owner attempts to end Auction
+        await contract.methods.endAuction(id).send({ from: userAccount }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+
+        // Bidder attempts to purchase Auction
+        await contract.methods.buyAuction(id).send({ from: bidder, value: web3Provider.utils.toWei('10', 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+    })
+
 
     it('check and verify the new modified and updated auction status', async () => {
         let auctionStatus = await contract.methods.getAuctionStatus(id).call();
@@ -418,6 +496,33 @@ describe('Simulate Auction Ending', () => {
         assert.equal(message, "success", "Auction should be able to be ended.");
     })
 
+
+    it('Auction status cannot change once set to ENDED', async () => {
+        const bidder = userAddresses[1];
+
+        // Owner ends Auction
+        await contract.methods.endAuction(id).send({ from: userAccount });
+
+        // Owner attempts to cancel Auction
+        await contract.methods.cancelAuction(id).send({ from: userAccount }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+
+        // Bidder attempts to purchase Auction
+        await contract.methods.buyAuction(id).send({ from: bidder, value: web3Provider.utils.toWei('10', 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+    })
+
+
     it('check and verify the new modified and updated auction status', async () => {
         let auctionStatus = await contract.methods.getAuctionStatus(id).call();
         assert.equal(auctionStatus, 1, "Auction should be ongoing.");
@@ -436,8 +541,8 @@ describe('Simulate Auction being Purchased', () => {
         const sellingPrice = '10';
         let message = null;
 
-        // Owner cancels Auction
-        await contract.methods.buyAuction(id).send({ from: bidder, value: web3Provider.utils.toWei(sellingPrice, 'ether'), gas: 4712388, gasPrice: 100000000000  }).then(async (response) => {
+        // User purchases Auction
+        await contract.methods.buyAuction(id).send({ from: bidder, value: web3Provider.utils.toWei(sellingPrice, 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
             if (response) {
                 message = "success";
             };
@@ -447,8 +552,52 @@ describe('Simulate Auction being Purchased', () => {
             };
         });
 
-        assert.equal(message, "success", "Auction should be able to be purchased by bidder.");
+        assert.equal(message, "success", "User purchasing Auction should be successful.");
     })
+
+
+    it('Auction status cannot change once set to SOLD', async () => {
+        const bidder = userAddresses[1];
+        const sellingPrice = '10';
+
+        // User purchases Auction
+        await contract.methods.buyAuction(id).send({ from: bidder, value: web3Provider.utils.toWei(sellingPrice, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+
+        // Owner attempts to cancel Auction
+        await contract.methods.cancelAuction(id).send({ from: userAccount }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+
+        // Owner attempts ends Auction
+        await contract.methods.endAuction(id).send({ from: userAccount }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+    })
+
+
+    it('bidder cannot purchase Auction for less than set selling price', async () => {
+        const bidder = userAddresses[1];
+        // Set Selling Price is 10 ETH
+        const lessThanSellingPrice = '1';
+      
+        // User attempts to purchase Auction for less than set selling price
+        await contract.methods.buyAuction(id).send({ from: bidder, value: web3Provider.utils.toWei(lessThanSellingPrice, 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+    })
+
 
     it('check and verify the new modified and updated auction status', async () => {
         const bidder = userAddresses[1];
@@ -457,7 +606,7 @@ describe('Simulate Auction being Purchased', () => {
         let auctionStatus = await contract.methods.getAuctionStatus(id).call();
         assert.equal(auctionStatus, 1, "Auction should be ongoing.");
 
-        // Purchase Auction
+        // Bidder purchases Auction for 10 ETH (Set Selling Price)
         await contract.methods.buyAuction(id).send({ from: bidder, value: web3Provider.utils.toWei(sellingPrice, 'ether'), gas: 4712388, gasPrice: 100000000000 });
         auctionStatus = await contract.methods.getAuctionStatus(id).call();
         assert.equal(auctionStatus, 3, "Auction should now be bought.");
@@ -465,7 +614,7 @@ describe('Simulate Auction being Purchased', () => {
 });
 
 describe('Simulate Withdrawal Transaction', () => {
-    it('Auction can be withdrawn by bidders after expiration', async () => {
+    it('bids can be withdrawn by bidders after Auction Cancellation', async () => {
         const bidder = userAddresses[1];
         // Bid 5 Ether
         const bidValue = '5';
@@ -473,10 +622,13 @@ describe('Simulate Withdrawal Transaction', () => {
 
         await contract.methods.placeBid(id).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
 
+        let returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 5, "User current bid should be greater than 0.");
+
         // Owner cancels Auction
         await contract.methods.cancelAuction(id).send({ from: userAccount });
 
-        // Owner cancels Auction
+        // User withdraws their bid
         await contract.methods.withdrawBid(id).send({ from: bidder }).then(async (response) => {
             if (response) {
                 message = "success";
@@ -487,30 +639,104 @@ describe('Simulate Withdrawal Transaction', () => {
             };
         });
 
-        assert.equal(message, "success", "Auction should be able to be withdrawn by bidder.");
+        assert.equal(message, "success", "Bidder should be able to withdraw their own Auction bid.");
+
+        // Highest bidder's bid should now contain 0 ETH (as claim was successful)
+        returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 0, "User current bid should now be equal to 0.");
     })
 
-    it('check and verify the auction is withdrawn', async () => {
-        const bidder = userAddresses[1];
+
+    it('bids can be withdrawn by bidders after Auction Purchase', async () => {
+        const bidder1 = userAddresses[1];
+        const bidder2 = userAddresses[2];
         // Bid 5 Ether
+        const bidValue = '5';
+        // Set selling price to 10 Ether
+        const sellingPrice = '10';
+
+        let message = null;
+
+        // First user places bid
+        await contract.methods.placeBid(id).send({ from: bidder1, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+
+        let returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder1).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 5, "User current bid should be greater than 0.");
+
+        // Second user purchases Auction
+        await contract.methods.buyAuction(id).send({ from: bidder2, value: web3Provider.utils.toWei(sellingPrice, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+
+        // First user withdraws their bid
+        await contract.methods.withdrawBid(id).send({ from: bidder1 }).then(async (response) => {
+            if (response) {
+                message = "success";
+            };
+        }).catch((error) => {
+            if (error) {
+                message = "error";
+            };
+        });
+
+        assert.equal(message, "success", "Bidder should be able to withdraw their own Auction bid.");
+
+        // Highest bidder's bid should now contain 0 ETH (as claim was successful)
+        returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder1).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 0, "User current bid should now be equal to 0.");
+    })
+
+
+    it('bids cannot be withdrawn by bidders when Auction is Ongoing', async () => {
+        const bidder = userAddresses[1];
+        // Bid 5 Ether - user is highest bidder
         const bidValue = '5';
         await contract.methods.placeBid(id).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
 
         let returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
         assert.equal(returnedUserCurrentBid, 5, "User current bid should be greater than 0.");
 
-        // Owner cancels Auction
-        await contract.methods.cancelAuction(id).send({ from: userAccount });
-        // Bidder withdraws their bid
-        await contract.methods.withdrawBid(id).send({ from: bidder });
+        // Bidder attempts to withdraw their bid
+        await contract.methods.withdrawBid(id).send({ from: bidder }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
 
+        // Highest bidder's bid should remain the same (as withdrawal was unsuccessful)
         returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
-        assert.equal(returnedUserCurrentBid, 0, "User current bid should now be equal to 0.");
+        assert.equal(returnedUserCurrentBid, 5, "User current bid should remain the same as before.");
+    })
+
+
+    it('highest bid cannot be withdrawn from highest bidder in Ended Auctions', async () => {
+        const bidder = userAddresses[1];
+        // Bid 5 Ether - user is highest bidder
+        const bidValue = '5';
+        await contract.methods.placeBid(id).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+
+        let returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 5, "User current bid should be greater than 0.");
+
+        // Owner ends Auction
+        await contract.methods.endAuction(id).send({ from: userAccount });
+        // Bidder attempts to withdraw their bid
+        await contract.methods.withdrawBid(id).send({ from: bidder }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+
+        // Highest bidder's bid should remain the same (as withdrawal was unsuccessful)
+        returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 5, "User current bid should remain the same as before.");
     })
 });
 
 describe('Simulate Owner Claiming Winning Bid', () => {
-    it('Auction\'s highest bid can be claimed by owner after ending', async () => {
+    it('owner can claim highest bid after Auction Ended', async () => {
         const bidder = userAddresses[1];
         // Bidder bids 5 Ether
         const bidValue = '5';
@@ -518,10 +744,16 @@ describe('Simulate Owner Claiming Winning Bid', () => {
 
         await contract.methods.placeBid(id).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
 
+        let returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 5, "User current bid should be greater than 0.");
+
         // Owner ends Auction
         await contract.methods.endAuction(id).send({ from: userAccount });
 
-        // Owner cancels Auction
+        auctionStatus = await contract.methods.getAuctionStatus(id).call();
+        assert.equal(auctionStatus, 2, "Auction should now be ended.");
+
+        // Owner claims the winning bid
         await contract.methods.claimWinningBid(id).send({ from: userAccount }).then(async (response) => {
             if (response) {
                 message = "success";
@@ -533,28 +765,59 @@ describe('Simulate Owner Claiming Winning Bid', () => {
         });
 
         assert.equal(message, "success", "Auction's highest bid should be able to be claimed by owner.");
+
+        // Highest bidder's bid should now contain 0 ETH (as claim was successful)
+        returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 0, "Highest bidder bid should be equal to 0.");
     })
 
-    it('check and verify the highest bid is claimed', async () => {
-        let auctionStatus = await contract.methods.getAuctionStatus(id).call();
-        assert.equal(auctionStatus, 1, "Auction should be ongoing.");
 
+    it('only owner can claim the winning bid after Auction Ended', async () => {
         const bidder = userAddresses[1];
         // Bidder bids 5 Ether
         const bidValue = '5';
+
         await contract.methods.placeBid(id).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
 
-        // Owner ends Auction
-        await contract.methods.endAuction(id).send({ from: userAccount });
+        let returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 5, "User current bid should be greater than 0.");
 
-        auctionStatus = await contract.methods.getAuctionStatus(id).call();
-        assert.equal(auctionStatus, 2, "Auction should now be ended.");
+        // Bidder attempts to claim the winning bid
+        await contract.methods.claimWinningBid(id).send({ from: bidder }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
 
-        // Owner claims winning bid
-        await contract.methods.claimWinningBid(id).send({ from: userAccount });
+        // Highest bidder's bid should remain the same (as claim was unsuccessful)
+        returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 5, "User current bid should remain the same as before.");
+    })
 
-        // Highest bidder's bid should contain 0 ETH
-        const returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
-        assert.equal(returnedUserCurrentBid, 0, "Highest bidder bid should be equal to 0.");
+
+    it('owner cannot claim highest bid when Auction is not Ended', async () => {
+        const bidder = userAddresses[1];
+        // Bidder bids 5 Ether
+        const bidValue = '5';
+
+        await contract.methods.placeBid(id).send({ from: bidder, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+
+        let returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 5, "User current bid should be greater than 0.");
+
+        // Owner attempts to claim the winning bid
+        await contract.methods.claimWinningBid(id).send({ from: userAccount }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+
+        // Highest bidder's bid should remain the same (as claim was unsuccessful)
+        returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(id, bidder).call(), 'ether');
+        assert.equal(returnedUserCurrentBid, 5, "User current bid should remain the same as before.");
     })
 });
