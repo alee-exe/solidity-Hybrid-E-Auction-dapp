@@ -54,8 +54,7 @@ export default withRouter(class Home extends Component {
             const contract = new web3.eth.Contract(AuctionListing['abi'], contractAddress);
             const userAddresses = await web3.eth.getAccounts();
             const userAccount = userAddresses[0];
-            //web3.eth.defaultAccount = userAccount;
-
+   
             const id = this.props.router.query.id - 1;
 
             const listedAuctions = await contract.methods.getListedAuctions().call();
@@ -387,7 +386,7 @@ export default withRouter(class Home extends Component {
         });
     }
 
-    // Fetches the price of 1 ETH to Fiat currencies
+    // Fetches the current market price of 1 ETH to chosen Fiat currency
     fetchETHtoFiatCurrency = async () => {
         const { data } = await axios.get(`https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD,EUR,GBP`);
         const { ETHtoFiatCurrency, bidValue } = this.state;
@@ -429,7 +428,6 @@ export default withRouter(class Home extends Component {
 
                     <p className="pb-3"><span className="font-bold">Auction Owner (Address): </span>{this.state.owner}</p>
                     <p className="pb-3"><span className="font-bold">Auction Owner Contact Details: </span>{this.state.ownerContactDetails}</p>
-                    {/* <p className="pb-3"><span className="font-bold">Auction Contract (Address): </span>{this.state.auctionAddress}</p> */}
                     <p className="pb-3"><span className="font-bold">Auction End Date: </span>{this.state.endBlockTimeStamp === null || this.state.auctionStatus === null ? null : (<span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {this.state.auctionStatus != 1 ? (enumStatus(this.state.auctionStatus)) : (convertTimestampToDate(this.state.auctionTimer, "time"))})</span>)}</p>
 
                     <p className="pb-3"><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>

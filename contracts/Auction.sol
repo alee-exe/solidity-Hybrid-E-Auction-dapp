@@ -2,9 +2,9 @@
 pragma solidity >=0.4.22 <0.9.0;
 
 contract Auction {
-    // State variables, uint256 = unsigned integer of 256 bits, address = Ethereum account addresses (20 bytes)
+    // State variables, uint256 = unsigned integer of 256 bits (32 bytes), address = Ethereum account addresse in 160 bits (20 bytes)
 
-    // Store's the auction owner = contract owner
+    // Store's the auction/contract owner = seller
     address public owner;
     // Owner contact details
     string public ownerContactDetails;
@@ -28,7 +28,7 @@ contract Auction {
     // If Auction Item is purchased
     address public purchaser;
 
-    // Auction states
+    // Auction different states
     enum STATE {
         CANCELLED,
         ONGOING,
@@ -38,8 +38,8 @@ contract Auction {
 
     STATE public auctionStatus;
 
-    // structure is a collection of variables that can contain different data types
-    // we define an Item structure for the auctioned item
+    // Structure is a collection of variables that can contain multiple different data types 
+    // An Item structure is defined for the auctioned good - a single unit per auction
     struct Item {
         string name;
         string condition;
@@ -65,7 +65,7 @@ contract Auction {
         owner = _owner;
         ownerContactDetails = _ownerContactDetails;
         startBlockTimeStamp = block.timestamp;
-        // time is in hours
+        // Set auction duration in hours
         endBlockTimeStamp = startBlockTimeStamp + (_biddingTime * 1 hours);
         auctionStatus = STATE.ONGOING;
         sellingPrice = _sellingPrice;
@@ -78,11 +78,11 @@ contract Auction {
         auctionedItem.ipfsImageHash = _ipfsImageHash;
     }
 
-    // maps all bidders with their current bids, hash map (KeyType => ValueType)
-    // variables with the public modifier have automatic getters
+    // Maps all bidders with their current bids, hash map (KeyType => ValueType)
+    // Variables with the public modifier have automatic getters
     mapping(address => uint256) public trackAllBids;
 
-      // require modifiers will refund the remaining gas to the caller if incorrectly invoked
+    // Require modifiers are used to refund the remaining gas to the caller if incorrectly invoked
     modifier only_owner(address _user) {
         require(_user == owner, "Only Auction owner is allowed to perform this operation.");
         _;
@@ -114,7 +114,7 @@ contract Auction {
             require(msg.value >= startingBid, "Initial bid must be greater or equal to starting bid.");
         }
 
-        // if Auction type is Private then change bid handling and requirements
+        // Provide option to change between Auction types (Private and Public) - change bid handling and requirements
         if (isPrivate) {
             require(trackAllBids[_bidder] == 0, "You may only submit one bid per single-round sealed-bid auction.");
 
@@ -124,7 +124,7 @@ contract Auction {
                 require(msg.value > trackAllBids[_bidder], "Placed bid must be greater than your current highest bid.");
             }
 
-            // if two bidders have the same highest bid - select the bidder with the first highest bid
+            // If two bidders have the same highest bid - select the bidder with the first highest bid
             if (msg.value > trackAllBids[highestBidder]) {
                 highestBidder = _bidder;
                 highestBid = msg.value;
@@ -152,7 +152,7 @@ contract Auction {
     }
 
     function checkEscrowBidding(address _bidder) private returns (bool) {
-        // prevent escrow bidding
+        // Check and prevent escrow bidding
         if (trackAllBids[_bidder] > 0) {
             payable(_bidder).transfer(trackAllBids[_bidder]);
             trackAllBids[_bidder] = 0;

@@ -52,6 +52,8 @@ export default class AuctionListingComponent extends Component {
             };
 
             this.setState({ contractAddress, auctionListing, web3Provider: web3, userAccount, contract, userOwnedAuctions, userOwnedAuctionIds, userNotOwnedAuctions, userNotOwnedAuctionIds });
+
+            console.log(auctionListing);
         } catch (error) {
             console.log(error);
         };
@@ -64,65 +66,62 @@ export default class AuctionListingComponent extends Component {
     render() {
         return (
             <div>
-                {this.state.auctionListing === null ? (<div className="mt-4 border flex pl-2 mb-4">
-                    <h1 className="italic text-xl">Awaiting for developer AuctionListing deployment...</h1>
-                </div>
-                ) : (
-                    <div className="flex justify-center pt-10 border">
-                        <div className="w-4/5 flex flex-col pb-12">
-                            <h1 className="pt-4 pb-3 text-2xl font-bold">Auction Listings </h1>
-                            <hr className="border-slate-400 pb-4" />
+                {this.state.auctionListing === null ? null : (this.state.auctionListing.length >= 0 ? (<div className="flex justify-center pt-10 border">
+                    <div className="w-4/5 flex flex-col pb-12">
+                        <h1 className="pt-4 pb-3 text-2xl font-bold">Auction Listings </h1>
+                        <hr className="border-slate-400 pb-4" />
 
-                            <div className="border flex pl-2 mb-4">
-                                <h1>Filter by:  <select id="filter" className="bg-slate-500 text-white shadow-lg font-bold" onChange={this.handleFilterSelection}>
-                                    <option value="All">All</option>
-                                    <option value="Owned">Owned</option>
-                                    <option value="Not Owned">Not Owned</option>
-                                </select></h1>
-                            </div>
-
-                            <div className="border flex pl-2 mb-4">
-                                <h1><span className="font-bold">AuctionListing (Master Smart Contract Address):</span> {this.state.contractAddress}</h1>
-                            </div>
-
-                            <div className="border flex pl-2 mb-4">
-                                {this.state.selectedFilter === "All" ? (<h1>Showing {this.state.auctionListing.length} auctions in total.</h1>) : null}
-                                {this.state.selectedFilter === "Owned" ? (<h1>Showing {this.state.userOwnedAuctions.length} auctions in total.</h1>) : null}
-                                {this.state.selectedFilter === "Not Owned" ? (<h1>Showing {this.state.userNotOwnedAuctions.length} auctions in total.</h1>) : null}
-                            </div>
-
-                            {this.state.selectedFilter === "All" ? (<div>
-                                {this.state.auctionListing.map((auction, idx) => (
-                                    <div key={idx}>
-                                        <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: idx + 1 } }}>
-                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction (Smart Contract Address): {auction}</span>
-                                                <AuctionPreview web3={this.state.web3Provider} id={idx} contract={this.state.contract}></AuctionPreview></a></Link>
-                                    </div>
-                                ))}
-                            </div>) : null}
-
-                            {this.state.selectedFilter === "Owned" ? (<div>
-                                {this.state.userOwnedAuctions.map((auction, idx) => (
-                                    <div key={idx}>
-                                        <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userOwnedAuctionIds[this.state.userOwnedAuctions.indexOf(auction)] + 1 } }}>
-                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction (Smart Contract Address): {auction}</span>
-                                                <AuctionPreview web3={this.state.web3Provider} id={this.state.userOwnedAuctionIds[this.state.userOwnedAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a></Link>
-                                    </div>
-                                ))}
-                            </div>) : null}
-
-                            {this.state.selectedFilter === "Not Owned" ? (<div>
-                                {this.state.userNotOwnedAuctions.map((auction, idx) => (
-                                    <div key={idx}>
-                                        <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userNotOwnedAuctionIds[this.state.userNotOwnedAuctions.indexOf(auction)] + 1 } }}>
-                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction (Smart Contract Address): {auction}</span>
-                                                <AuctionPreview web3={this.state.web3Provider} id={this.state.userNotOwnedAuctionIds[this.state.userNotOwnedAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a></Link>
-                                    </div>
-                                ))}
-                            </div>) : null}
+                        <div className="border flex pl-2 mb-4">
+                            <h1>Filter by:  <select id="filter" className="bg-slate-500 text-white shadow-lg font-bold" onChange={this.handleFilterSelection}>
+                                <option value="All">All</option>
+                                <option value="Owned">Owned</option>
+                                <option value="Not Owned">Not Owned</option>
+                            </select></h1>
                         </div>
+
+                        <div className="border flex pl-2 mb-4">
+                            <h1><span className="font-bold">AuctionListing (Master Smart Contract Address):</span> {this.state.contractAddress}</h1>
+                        </div>
+
+                        <div className="border flex pl-2 mb-4">
+                            {this.state.selectedFilter === "All" ? (<h1>Showing {this.state.auctionListing.length} auctions in total.</h1>) : null}
+                            {this.state.selectedFilter === "Owned" ? (<h1>Showing {this.state.userOwnedAuctions.length} auctions in total.</h1>) : null}
+                            {this.state.selectedFilter === "Not Owned" ? (<h1>Showing {this.state.userNotOwnedAuctions.length} auctions in total.</h1>) : null}
+                        </div>
+
+                        {this.state.selectedFilter === "All" ? (<div>
+                            {this.state.auctionListing.map((auction, idx) => (
+                                <div key={idx}>
+                                    <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: idx + 1 } }}>
+                                        <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction (Smart Contract Address): {auction}</span>
+                                            <AuctionPreview web3={this.state.web3Provider} id={idx} contract={this.state.contract}></AuctionPreview></a></Link>
+                                </div>
+                            ))}
+                        </div>) : null}
+
+                        {this.state.selectedFilter === "Owned" ? (<div>
+                            {this.state.userOwnedAuctions.map((auction, idx) => (
+                                <div key={idx}>
+                                    <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userOwnedAuctionIds[this.state.userOwnedAuctions.indexOf(auction)] + 1 } }}>
+                                        <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction (Smart Contract Address): {auction}</span>
+                                            <AuctionPreview web3={this.state.web3Provider} id={this.state.userOwnedAuctionIds[this.state.userOwnedAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a></Link>
+                                </div>
+                            ))}
+                        </div>) : null}
+
+                        {this.state.selectedFilter === "Not Owned" ? (<div>
+                            {this.state.userNotOwnedAuctions.map((auction, idx) => (
+                                <div key={idx}>
+                                    <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userNotOwnedAuctionIds[this.state.userNotOwnedAuctions.indexOf(auction)] + 1 } }}>
+                                        <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction (Smart Contract Address): {auction}</span>
+                                            <AuctionPreview web3={this.state.web3Provider} id={this.state.userNotOwnedAuctionIds[this.state.userNotOwnedAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a></Link>
+                                </div>
+                            ))}
+                        </div>) : null}
                     </div>
-                )}
+                </div>) : (<div className="mt-4 border flex pl-2 mb-4">
+                    <h1 className="italic text-xl">Awaiting for developer AuctionListing deployment or MetaMask Login...</h1>
+                </div>))}
             </div>
         )
     }

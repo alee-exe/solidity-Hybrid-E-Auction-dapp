@@ -11,10 +11,6 @@ function MyApp({ Component, pageProps }) {
     </Head>
 
     <div className="container mx-auto pt-4">
-      {/* <Alert type="success">This is a success message</Alert>
-      <Alert type="warning">This is a warning message</Alert>
-      <Alert type="danger">This is a danger message</Alert>
-      <Alert type="any">This is an any message</Alert> */}
       <Navbar />
       <Component {...pageProps} />
       <Footer />

@@ -4,9 +4,10 @@ pragma solidity >=0.4.22 <0.9.0;
 import "./Auction.sol";
 
 contract AuctionListing {
-    // Hold all auction objects
+    // Hold all auction smart contracts in an Auction object array
     Auction[] public listedAuctions;
     
+    // Create an auction smart contract
     function createAuction(
         string memory _ownerContactDetails,
         uint256 _biddingTime,
@@ -19,7 +20,7 @@ contract AuctionListing {
         string memory _description,
         string memory _ipfsImageHash
     ) public {
-        Auction createdAuction = new Auction(
+        Auction newAuctionSmartContract = new Auction(
             msg.sender,
             _ownerContactDetails,
             _biddingTime,
@@ -32,10 +33,11 @@ contract AuctionListing {
             _description,
             _ipfsImageHash    
         );
-
-        listedAuctions.push(createdAuction);
+        // Add new auction smart contract to list
+        listedAuctions.push(newAuctionSmartContract);
     }
 
+    // Getters and calling functions to be invoked using Web 3.0
     function placeBid(uint _i) public payable returns (bool) {
         return listedAuctions[_i].placeBid{value:msg.value}(msg.sender);
     }
