@@ -325,6 +325,28 @@ describe('Verify conditional Auction Type on Bidding', () => {
         assert.equal(returnedUserCurrentBid2, 3, "User current bid should be greater than 0.");
     })
 
+    it('bidder may only bid once (Single-round) (PRIVATE)', async () => {
+        const bidder1 = userAddresses[1];
+        const privateId = 1;
+        // Bid 3 Ether
+        const bidValue = '3';
+
+        await contract.methods.placeBid(privateId).send({ from: bidder1, value: web3Provider.utils.toWei(bidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 });
+        const returnedUserCurrentBid1 = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(privateId, bidder1).call(), 'ether');
+        assert.equal(returnedUserCurrentBid1, 3, "User current bid should be greater than 0.");
+
+        // Create new valid bid that succeeds previous bid
+        const newBidValue = '4';
+        // Same bidder attempts to perform new valid bid
+        await contract.methods.placeBid(privateId).send({ from: bidder1, value: web3Provider.utils.toWei(newBidValue, 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+            if (response) {
+                throw null;
+            };
+        }).catch((error) => {
+            // Catch revert error as same bidder may only bid once in Private auction
+            assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
+        });
+    })
 
     it('new bid cannot be equal to current highest bid (PUBLIC)', async () => {
         const bidder1 = userAddresses[1];
@@ -350,9 +372,7 @@ describe('Verify conditional Bid Increment on Bidding', () => {
         const privateId = 1;
         let message = null;
 
-        await contract.methods.placeBid(privateId).send({ from: bidder, value: web3Provider.utils.toWei('2', 'ether'), gas: 4712388, gasPrice: 100000000000 });
-        // New bid must be greater or equal to Bidder's Current Bid + Bid Increment (2 + 2)
-        // Same bidder attempts to bid a lesser bid value than previously
+        // Bidder attempts to bid a value less than bid increment
         await contract.methods.placeBid(privateId).send({ from: bidder, value: web3Provider.utils.toWei('1', 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
             if (response) {
                 throw null;
@@ -361,12 +381,8 @@ describe('Verify conditional Bid Increment on Bidding', () => {
             assert(error.message.startsWith("VM Exception while processing transaction: revert"), "Expected revert error message");
         });
 
-        // User current bid should be the same value as the first bid (as next bid failed)
-        let returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(privateId, bidder).call(), 'ether');
-        assert.equal(returnedUserCurrentBid, 2, "User current bid be the same as the first bid.");
-
         // Bids again with the appropriate values
-        await contract.methods.placeBid(privateId).send({ from: bidder, value: web3Provider.utils.toWei('4', 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
+        await contract.methods.placeBid(privateId).send({ from: bidder, value: web3Provider.utils.toWei('2', 'ether'), gas: 4712388, gasPrice: 100000000000 }).then(async (response) => {
             if (response) {
                 message = "success";
             };
@@ -378,7 +394,7 @@ describe('Verify conditional Bid Increment on Bidding', () => {
 
         assert.equal(message, "success", "New bid with appropriate values should be able to be placed.");
         returnedUserCurrentBid = web3Provider.utils.fromWei(await contract.methods.getUserCurrentBid(privateId, bidder).call(), 'ether');
-        assert.equal(returnedUserCurrentBid, 4, "User current bid should be greater than first bid.");
+        assert.equal(returnedUserCurrentBid, 2, "User current bid should be greater or equal to bid increment.");
     })
 
 

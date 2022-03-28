@@ -27,7 +27,7 @@ function checkAuctionType(isPrivate) {
     let type = null;
 
     if (isPrivate) {
-        type = "PRIVATE (Sealed-bid)";
+        type = "PRIVATE (Single-round Sealed-bid)";
     } else {
         type = "PUBLIC (Open-bid)";
     }

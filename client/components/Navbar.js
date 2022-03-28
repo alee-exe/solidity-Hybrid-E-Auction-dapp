@@ -3,7 +3,7 @@ import Link from 'next/link';
 export default function Navbar() {
     return (
         <div>
-            <h1 className="text-4xl font-bold pb-4">Hybrid CReam Decentralized E-Auction</h1>
+            <h1 className="text-4xl font-bold pb-4">Hybrid Variant Decentralized E-Auction</h1>
             <hr className="pb-4 border-slate-400" />
 
             <nav className="pb-4">

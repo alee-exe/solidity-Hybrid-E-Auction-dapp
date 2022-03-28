@@ -116,6 +116,8 @@ contract Auction {
 
         // if Auction type is Private then change bid handling and requirements
         if (isPrivate) {
+            require(trackAllBids[_bidder] == 0, "You may only submit one bid per single-round sealed-bid auction.");
+
             if (bidIncrement > 0 ) {
                 require(msg.value >= trackAllBids[_bidder] + bidIncrement, "Placed bid must be greater than your current bid + bid increment.");
             } else {
