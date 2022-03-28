@@ -14,7 +14,7 @@ This decentralized application is built-on the following technologies:
 ## Starting the Application
 1. Clone the repository and install the necessary dependencies.
     ```
-    git clone 
+    git clone https://github.com/A0-Lee/Decentralized-E-Auction.git
     cd Decentralized-E-Auction
     npm install
     cd client

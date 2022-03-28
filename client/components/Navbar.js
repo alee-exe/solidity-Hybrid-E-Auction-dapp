@@ -9,27 +9,27 @@ export default function Navbar() {
             <nav className="pb-4">
                 <div className="flex mt-4">
                     <Link href="/">
-                        <a className="mr-8 font-bold text-blue-500 text-base">
+                        <a className="mr-8 font-bold text-blue-500 text-lg">
                             Auction Listings
                         </a>
                     </Link>
                     <Link href="/create-auction">
-                        <a className="mr-8 font-bold text-blue-500 text-base">
+                        <a className="mr-8 font-bold text-blue-500 text-lg">
                             Create Auction
                         </a>
                     </Link>
                     <Link href="/my-auction-activity">
-                        <a className="mr-8 font-bold text-blue-500 text-base">
+                        <a className="mr-8 font-bold text-blue-500 text-lg">
                             My Auction Activity
                         </a>
                     </Link>
                     <Link href="/my-current-bids">
-                        <a className="mr-8 font-bold text-blue-500 text-base">
+                        <a className="mr-8 font-bold text-blue-500 text-lg">
                             My Current Bids
                         </a>
                     </Link>
                     <Link href="/user-dashboard">
-                        <a className="mr-8 font-bold text-blue-500 text-base">
+                        <a className="mr-8 font-bold text-blue-500 text-lg">
                             User Dashboard
                         </a>
                     </Link>

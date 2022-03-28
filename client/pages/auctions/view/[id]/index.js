@@ -123,13 +123,26 @@ export default withRouter(class Home extends Component {
 
     updateAuctionStatus = async () => {
         const { contract, auctionId, userAccount } = this.state;
+        let hasUserEndedAuction = false;
         // Check if auction has ended
         if ((this.state.endBlockTimeStamp - Math.floor(Date.now() / 1000)) <= 0 && this.state.auctionStatus == 1) {
             console.log("AUCTION HAS ENDED");
 
             // User must accept the new state
-            const auctionStatusEnded = await contract.methods.endAuction(auctionId).send({ from: userAccount });
-            this.setState({ auctionStatus: auctionStatusEnded });
+            if (!hasUserEndedAuction) {
+                const auctionStatusEnded = await contract.methods.endAuction(auctionId).send({ from: userAccount }).then(async (response) => {
+                    if (response) {
+                        hasUserEndedAuction = true;
+                        this.setState({ auctionStatus: auctionStatusEnded });
+                        const bidAlert = <Alert type="success">Successfully ended Auction!</Alert>;
+                        this.setState({ bidAlert });
+                    };
+                }).catch((error) => {
+                    if (error) {
+                        console.log(error);
+                    };
+                });
+            }
         };
 
         // Check if auction has been cancelled, ended, or sold
@@ -396,6 +409,11 @@ export default withRouter(class Home extends Component {
     render() {
         return (<div>
             {this.state.bidAlert}
+            <div className="px-4 mt-4 pt-2 border rounded-md bg-slate-200 font-semibold">
+                <h1 className="text-2xl mb-2"><span className="font-bold">Auction Smart Contract (Address): </span>{this.state.auctionAddress}</h1>
+                <hr className="border-slate-400 mb-4" />
+            </div>
+
             <div className="flex mt-4 card border bg-slate-50">
                 <div className="row-span-3 pl-5 pt-5">
                     {this.state.ipfsImageHash === null ? (<Image src={LoadingImage} width={670} height={440} priority={true}></Image>) : (<Image src={`https://ipfs.infura.io/ipfs/${this.state.ipfsImageHash}`} width={670} height={440} priority={true}></Image>)}
@@ -411,7 +429,7 @@ export default withRouter(class Home extends Component {
 
                     <p className="pb-3"><span className="font-bold">Auction Owner (Address): </span>{this.state.owner}</p>
                     <p className="pb-3"><span className="font-bold">Auction Owner Contact Details: </span>{this.state.ownerContactDetails}</p>
-                    <p className="pb-3"><span className="font-bold">Auction Contract (Address): </span>{this.state.auctionAddress}</p>
+                    {/* <p className="pb-3"><span className="font-bold">Auction Contract (Address): </span>{this.state.auctionAddress}</p> */}
                     <p className="pb-3"><span className="font-bold">Auction End Date: </span>{this.state.endBlockTimeStamp === null || this.state.auctionStatus === null ? null : (<span>{convertTimestampToDate(this.state.endBlockTimeStamp)} (remaining time: {this.state.auctionStatus != 1 ? (enumStatus(this.state.auctionStatus)) : (convertTimestampToDate(this.state.auctionTimer, "time"))})</span>)}</p>
 
                     <p className="pb-3"><span className="font-bold">Auction Status: </span>{enumStatus(this.state.auctionStatus)}</p>

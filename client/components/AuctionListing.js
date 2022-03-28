@@ -87,7 +87,7 @@ export default class AuctionListingComponent extends Component {
                                 {this.state.auctionListing.map((auction, idx) => (
                                     <div key={idx}>
                                         <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: idx + 1 } }}>
-                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction Contract: {auction}</span>
+                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction Smart Contract (Address): {auction}</span>
                                                 <AuctionPreview web3={this.state.web3Provider} id={idx} contract={this.state.contract}></AuctionPreview></a></Link>
                                     </div>
                                 ))}
@@ -97,7 +97,7 @@ export default class AuctionListingComponent extends Component {
                                 {this.state.userOwnedAuctions.map((auction, idx) => (
                                     <div key={idx}>
                                         <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userOwnedAuctionIds[this.state.userOwnedAuctions.indexOf(auction)] + 1 } }}>
-                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction Contract: {auction}</span>
+                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction Smart Contract (Address): {auction}</span>
                                                 <AuctionPreview web3={this.state.web3Provider} id={this.state.userOwnedAuctionIds[this.state.userOwnedAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a></Link>
                                     </div>
                                 ))}
@@ -107,7 +107,7 @@ export default class AuctionListingComponent extends Component {
                                 {this.state.userNotOwnedAuctions.map((auction, idx) => (
                                     <div key={idx}>
                                         <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userNotOwnedAuctionIds[this.state.userNotOwnedAuctions.indexOf(auction)] + 1 } }}>
-                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction Contract: {auction}</span>
+                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction Smart Contract (Address): {auction}</span>
                                                 <AuctionPreview web3={this.state.web3Provider} id={this.state.userNotOwnedAuctionIds[this.state.userNotOwnedAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a></Link>
                                     </div>
                                 ))}
