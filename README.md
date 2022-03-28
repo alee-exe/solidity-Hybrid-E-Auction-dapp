@@ -38,9 +38,11 @@ This decentralized application is built-on the following technologies:
 ## Deployment to Ropsten (Optional)
 7. Set-up an [Infura](https://infura.io/) account to access public ETH nodes service network.
 
-8. Compile and deploy smart contracts to public Ropsten testing network.
+8. Configure Ropsten network settings in truffle-config.js (Ganache menomic seed and Infura Ethereum API for HDWalletProvider).
+
+9. Compile and deploy smart contracts to public Ropsten testing network.
     ```
     truffle migrate --network ropsten
     ```
 
-9. Switch MetaMask account network from "Localhost 8545" to "Ropsten Test Network".
+10. Switch MetaMask account network from "Localhost 8545" to "Ropsten Test Network".
