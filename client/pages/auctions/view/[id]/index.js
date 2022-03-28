@@ -410,7 +410,7 @@ export default withRouter(class Home extends Component {
         return (<div>
             {this.state.bidAlert}
             <div className="px-4 mt-4 pt-2 border rounded-md bg-slate-200 font-semibold">
-                <h1 className="text-2xl mb-2"><span className="font-bold">Auction Smart Contract (Address): </span>{this.state.auctionAddress}</h1>
+                <h1 className="text-2xl mb-2"><span className="font-bold">Auction (Smart Contract Address): </span>{this.state.auctionAddress}</h1>
                 <hr className="border-slate-400 mb-4" />
             </div>
 

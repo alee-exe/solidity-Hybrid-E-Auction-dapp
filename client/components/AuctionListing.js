@@ -13,6 +13,7 @@ export default class AuctionListingComponent extends Component {
         web3Provider: null,
         userAccount: null,
         contract: null,
+        contractAddress: null,
         selectedFilter: "All",
         userOwnedAuctions: null,
         userOwnedAuctionIds: null,
@@ -50,7 +51,7 @@ export default class AuctionListingComponent extends Component {
                 };
             };
 
-            this.setState({ auctionListing, web3Provider: web3, userAccount, contract, userOwnedAuctions, userOwnedAuctionIds, userNotOwnedAuctions, userNotOwnedAuctionIds });
+            this.setState({ contractAddress, auctionListing, web3Provider: web3, userAccount, contract, userOwnedAuctions, userOwnedAuctionIds, userNotOwnedAuctions, userNotOwnedAuctionIds });
         } catch (error) {
             console.log(error);
         };
@@ -63,7 +64,10 @@ export default class AuctionListingComponent extends Component {
     render() {
         return (
             <div>
-                {this.state.auctionListing === null ? null : (
+                {this.state.auctionListing === null ? (<div className="mt-4 border flex pl-2 mb-4">
+                    <h1 className="italic text-xl">Awaiting for developer AuctionListing deployment...</h1>
+                </div>
+                ) : (
                     <div className="flex justify-center pt-10 border">
                         <div className="w-4/5 flex flex-col pb-12">
                             <h1 className="pt-4 pb-3 text-2xl font-bold">Auction Listings </h1>
@@ -78,6 +82,10 @@ export default class AuctionListingComponent extends Component {
                             </div>
 
                             <div className="border flex pl-2 mb-4">
+                                <h1><span className="font-bold">AuctionListing (Master Smart Contract Address):</span> {this.state.contractAddress}</h1>
+                            </div>
+
+                            <div className="border flex pl-2 mb-4">
                                 {this.state.selectedFilter === "All" ? (<h1>Showing {this.state.auctionListing.length} auctions in total.</h1>) : null}
                                 {this.state.selectedFilter === "Owned" ? (<h1>Showing {this.state.userOwnedAuctions.length} auctions in total.</h1>) : null}
                                 {this.state.selectedFilter === "Not Owned" ? (<h1>Showing {this.state.userNotOwnedAuctions.length} auctions in total.</h1>) : null}
@@ -87,7 +95,7 @@ export default class AuctionListingComponent extends Component {
                                 {this.state.auctionListing.map((auction, idx) => (
                                     <div key={idx}>
                                         <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: idx + 1 } }}>
-                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction Smart Contract (Address): {auction}</span>
+                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction (Smart Contract Address): {auction}</span>
                                                 <AuctionPreview web3={this.state.web3Provider} id={idx} contract={this.state.contract}></AuctionPreview></a></Link>
                                     </div>
                                 ))}
@@ -97,7 +105,7 @@ export default class AuctionListingComponent extends Component {
                                 {this.state.userOwnedAuctions.map((auction, idx) => (
                                     <div key={idx}>
                                         <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userOwnedAuctionIds[this.state.userOwnedAuctions.indexOf(auction)] + 1 } }}>
-                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction Smart Contract (Address): {auction}</span>
+                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction (Smart Contract Address): {auction}</span>
                                                 <AuctionPreview web3={this.state.web3Provider} id={this.state.userOwnedAuctionIds[this.state.userOwnedAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a></Link>
                                     </div>
                                 ))}
@@ -107,7 +115,7 @@ export default class AuctionListingComponent extends Component {
                                 {this.state.userNotOwnedAuctions.map((auction, idx) => (
                                     <div key={idx}>
                                         <Link href={{ pathname: this.ROUTE_AUCTION_ID, query: { id: this.state.userNotOwnedAuctionIds[this.state.userNotOwnedAuctions.indexOf(auction)] + 1 } }}>
-                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction Smart Contract (Address): {auction}</span>
+                                            <a><span className="pl-2 border flex bg-slate-300 font-semibold">Auction (Smart Contract Address): {auction}</span>
                                                 <AuctionPreview web3={this.state.web3Provider} id={this.state.userNotOwnedAuctionIds[this.state.userNotOwnedAuctions.indexOf(auction)]} contract={this.state.contract}></AuctionPreview></a></Link>
                                     </div>
                                 ))}
