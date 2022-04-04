@@ -130,7 +130,7 @@ contract Auction {
                 highestBid = msg.value;
             }
 
-            checkEscrowBidding(_bidder);
+            checkAccumulatedEscrowBidding(_bidder);
             trackAllBids[_bidder] += msg.value;
         } else {
             if (bidIncrement > 0 ) {
@@ -139,7 +139,7 @@ contract Auction {
                 require(msg.value > highestBid, "Placed bid must be greater than highest bid.");
             }
 
-            checkEscrowBidding(_bidder);
+            checkAccumulatedEscrowBidding(_bidder);
             highestBidder = _bidder;
             // msg.value is the bid value in wei
             highestBid = msg.value;
@@ -151,8 +151,8 @@ contract Auction {
         return true;
     }
 
-    function checkEscrowBidding(address _bidder) private returns (bool) {
-        // Check and prevent escrow bidding
+    function checkAccumulatedEscrowBidding(address _bidder) private returns (bool) {
+        // Check and prevent accumulated escrow bidding
         if (trackAllBids[_bidder] > 0) {
             payable(_bidder).transfer(trackAllBids[_bidder]);
             trackAllBids[_bidder] = 0;
