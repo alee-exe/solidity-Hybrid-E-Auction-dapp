@@ -14,8 +14,8 @@ This decentralized application is built-on the following technologies:
 ## Starting the Application
 1. Clone the repository and install the necessary dependencies.
     ```
-    git clone https://github.com/A0-Lee/Decentralized-E-Auction.git
-    cd Decentralized-E-Auction
+    git clone https://github.com/A0-Lee/solidity-Hybrid-E-Auction-dapp.git
+    cd solidity-Hybrid-E-Auction-dapp
     npm install
     cd client
     npm install
