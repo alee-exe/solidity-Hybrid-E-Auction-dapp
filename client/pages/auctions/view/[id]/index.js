@@ -414,8 +414,8 @@ export default withRouter(class Home extends Component {
             </div>
 
             <div className="flex mt-4 card border bg-slate-50">
-                <div className="row-span-3 pl-5 pt-5">
-                    {this.state.ipfsImageHash === null ? (<Image src={LoadingImage} width={670} height={440} priority={true}></Image>) : (<Image src={`https://ipfs.infura.io/ipfs/${this.state.ipfsImageHash}`} width={670} height={440} priority={true}></Image>)}
+                <div className="row-span-3 pl-5 pt-10">
+                    {this.state.ipfsImageHash === null ? (<Image src={LoadingImage} width={670} height={440} priority={true}></Image>) : (<Image src={`https://w3s.link/ipfs/${this.state.ipfsImageHash}`} width={670} height={440} priority={true}></Image>)}
                 </div>
 
                 <div className="row-span-2 col-span-2 pt-5 ml-10 leading-4">

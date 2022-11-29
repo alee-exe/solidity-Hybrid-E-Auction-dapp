@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { create as ipfsHttpClient } from 'ipfs-http-client';
 import Alert from '../components/Alert';
 import getWeb3 from '../components/getWeb3';
 import Tooltip from '../components/Tooltip.js';
+import { Web3Storage } from 'web3.storage';
 
-const client = ipfsHttpClient('https://ipfs.infura.io:5001/api/v0');
 // import local solidity smart contract "AuctionListing"
 import AuctionListing from '../build/contracts/AuctionListing.json';
 
@@ -52,13 +51,18 @@ export default function CreateAuctionPage() {
     };
 
     async function handleImageFile(event) {
-        const imageFile = event.target.files[0];
-        try {
-            const bind = await client.add(imageFile, { progress: (update) => console.log(`Successfully received uploaded file (bytes): ${update}`) });
-            setIpfsImageHash(bind.path);
-        } catch (error) {
-            console.log("Error: could not handle selected file: ", error);
-        }
+        const client = new Web3Storage({ token: process.env.WEB3_STORAGE_API_TOKEN });
+        const imageFile = event.target.files;
+        const files = [...imageFile].filter(f => f.type.includes('image'));
+        const cid = await client.put(files);
+
+        console.log('stored files with cid:', cid);
+        const imageHashUrl = cid + '/' + imageFile.name;
+        console.log(imageHashUrl);
+
+        setIpfsImageHash(imageHashUrl);
+
+        return imageHashUrl;
     };
 
     return (

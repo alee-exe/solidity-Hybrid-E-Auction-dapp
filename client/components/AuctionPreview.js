@@ -57,8 +57,8 @@ export default class AuctionPreviewComponent extends Component {
     render() {
         return (
             <div className="grid grid-rows-2 grid-flow-col gap-4 pb-4 border mb-4">
-                <div className="row-span-3 pl-5 pt-5">
-                    {this.state.ipfsImageHash === null ? (<p>Loading image...</p>) : (<Image src={`https://ipfs.infura.io/ipfs/${this.state.ipfsImageHash}`} width={390} height={250} priority={true}></Image>)}
+                <div className="row-span-3 pl-5 pt-10">
+                    {this.state.ipfsImageHash === null ? (<p>Loading image...</p>) : (<Image src={`https://w3s.link/ipfs/${this.state.ipfsImageHash}`} width={390} height={250} priority={true}></Image>)}
                 </div>
 
                 <div className="row-span-2 col-span-2 pt-5 pr-2">
